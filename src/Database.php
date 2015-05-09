@@ -7,6 +7,8 @@
  */
 namespace samsonframework\orm;
 
+use \PDO;
+
 /**
  * Class Database
  * @package samsonframework\orm
@@ -15,6 +17,9 @@ class Database implements DatabaseInterface
 {
     /** @var resource Database driver */
     protected $driver;
+
+    /** @var string Database name  */
+    protected $database;
 
     /** @var int Amount of miliseconds spent on queries */
     protected $elapsed;
@@ -31,13 +36,15 @@ class Database implements DatabaseInterface
         $host = 'localhost',
         $port = 3306,
         $driver = 'mysql',
-        $charset = 'utf-8'
+        $charset = 'utf8'
     ) {
         // If we have not connected yet
         if (!isset($this->driver)) {
 
             // Create connection string
             $dsn = $driver . ':host=' . $host . ';dbname=' . $database . ';charset=' . $charset;
+
+            $this->database = $database;
 
             // Set options
             $opt = array(
@@ -56,19 +63,142 @@ class Database implements DatabaseInterface
     /** {@inheritdoc} */
     public function & query($sql)
     {
-        // Store timestamp
-        $tsLast = microtime(true);
+        $result = array();
 
-        // Perform database query
-        $result = $this->driver->query($sql)->fetchAll(PDO::FETCH_COLUMN);
+        if (isset($this->driver)) {
+            // Store timestamp
+            $tsLast = microtime(true);
 
-        // Store queries count
-        $this->count++;
+            try {
+                // Perform database query
+                $result = $this->driver->query($sql)->fetchAll();
+            } catch(\PDOException $e) {
+                trace($sql.'-'.$e->getMessage());
+            }
 
-        // Отметим затраченное время на выполнение запроса
-        $this->elapsed += microtime(true) - $tsLast;
+            // Store queries count
+            $this->count++;
+
+            // Отметим затраченное время на выполнение запроса
+            $this->elapsed += microtime(true) - $tsLast;
+        }
 
         return $result;
+    }
+
+    /** @deprecated Use query() */
+    public function & simple_query($sql)
+    {
+        $result = array();
+
+        if (isset($this->driver)) {
+            // Store timestamp
+            $tsLast = microtime(true);
+
+            try {
+                // Perform database query
+                $result = $this->driver->query($sql)->execute();
+            } catch(\PDOException $e) {
+                trace($sql.'-'.$e->getMessage());
+            }
+
+
+            // Store queries count
+            $this->count++;
+
+            // Отметим затраченное время на выполнение запроса
+            $this->elapsed += microtime(true) - $tsLast;
+        }
+
+        return $result;
+    }
+
+    public function create($className, & $object = null)
+    {
+        // Get all database table characteristics
+        extract($this->__get_table_data($className));
+
+        // ??
+        $fields = $this->getQueryFields($className, $object);
+
+        // Build SQL query
+        $sql = 'INSERT INTO `' . $_table_name . '` (`' . implode('`,`', array_keys($fields)) . '`) VALUES (' . implode(',', $fields) . ')';
+
+        $this->query($sql);
+
+        // Return last inserted row identifier
+        return $this->driver->lastInsertId();
+    }
+
+    public function update($className, & $object)
+    {
+        // Get all database table characteristics
+        extract($this->__get_table_data($className));
+
+        // ??
+        $fields = $this->getQueryFields($className, $object, true);
+
+        // Build SQL query
+        $sql = 'UPDATE `' . $_table_name . '` SET ' . implode(',',
+                $fields) . ' WHERE ' . $_table_name . '.' . $_primary . '="' . $object->id . '"';
+
+        $this->query($sql);
+    }
+
+    public function delete($className, & $object)
+    {
+        // Get all database table characteristics
+        extract($this->__get_table_data($className));
+
+        // Build SQL query
+        $sql = 'DELETE FROM `' . $_table_name . '` WHERE ' . $_primary . ' = "' . $object->id . '"';
+
+        $this->query($sql);
+    }
+
+    /**
+     * Special accelerated function to retrieve db record fields instead of objects
+     *
+     * @param string $class_name
+     * @param dbQuery $query
+     * @param string $field
+     *
+     * @return array
+     */
+    public function & findFields($class_name, $query, $field)
+    {
+        $result = array();
+        if ($query->empty) {
+            return $result;
+        }
+
+        // Get SQL
+        $sql = $this->prepareSQL($class_name, $query);
+
+        $result = array_values($this->driver->query($sql)->fetchAll(PDO::FETCH_COLUMN, $field));
+
+        // Вернем коллекцию полученных объектов
+        return $result;
+    }
+
+    /**
+     * Выполнить защиту значения поля для его безопасного использования в запросах
+     *
+     * @param string $value Значения поля для запроса
+     * @return string $value Безопасное представление значения поля для запроса
+     */
+    protected function protectQueryValue($value)
+    {
+        // If magic quotes are on - remove slashes
+        if (get_magic_quotes_gpc()) {
+            $value = stripslashes($value);
+        }
+
+        // Normally escape string
+        $value = $this->driver->quote($value);
+
+        // Return value in quotes
+        return $value;
     }
 
     /** Destructor */
