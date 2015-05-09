@@ -37,8 +37,9 @@ interface DatabaseInterface
     );
 
     /**
-     * @param $sql
-     * @return mixed
+     * High-level database query
+     * @param string $sql SQL statement
+     * @return array Key-value record set
      */
     public function & query($sql);
 }
