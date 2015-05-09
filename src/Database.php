@@ -60,7 +60,7 @@ class Database implements DatabaseInterface
         $tsLast = microtime(true);
 
         // Perform database query
-        $result = $pdo->query($sql)->fetchAll(PDO::FETCH_COLUMN);
+        $result = $this->driver->query($sql)->fetchAll(PDO::FETCH_COLUMN);
 
         // Store queries count
         $this->count++;
