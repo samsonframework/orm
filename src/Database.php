@@ -7,8 +7,6 @@
  */
 namespace samsonframework\orm;
 
-use \PDO;
-
 /**
  * Class Database
  * @package samsonframework\orm
@@ -48,13 +46,13 @@ class Database implements DatabaseInterface
 
             // Set options
             $opt = array(
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+                \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+                \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC
             );
 
             try { // Connect to a database
-                $this->driver = new PDO($dsn, $username, $password, $opt);
-            } catch (PDOException $e) {
+                $this->driver = new \PDO($dsn, $username, $password, $opt);
+            } catch (\PDOException $e) {
                 // Handle exception
             }
         }
@@ -159,23 +157,30 @@ class Database implements DatabaseInterface
     /**
      * Special accelerated function to retrieve db record fields instead of objects
      *
-     * @param string $class_name
+     * @param string $className
      * @param dbQuery $query
      * @param string $field
      *
      * @return array
      */
-    public function & findFields($class_name, $query, $field)
+    public function & findFields($className, $query, $field)
     {
+        // WTF?
         $result = array();
         if ($query->empty) {
             return $result;
         }
 
         // Get SQL
-        $sql = $this->prepareSQL($class_name, $query);
+        $sql = $this->prepareSQL($className, $query);
 
-        $result = array_values($this->driver->query($sql)->fetchAll(PDO::FETCH_COLUMN, $field));
+        // Get all database table characteristics
+        extract($this->__get_table_data($className));
+
+        // Get table column index by its name
+        $columnIndex = array_search($field, array_values($_table_attributes));
+
+        $result = $this->driver->query($sql)->fetchAll(\PDO::FETCH_COLUMN, $columnIndex);
 
         // Вернем коллекцию полученных объектов
         return $result;
