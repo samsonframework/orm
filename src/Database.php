@@ -174,6 +174,26 @@ class Database
         return $result;
     }
 
+    /**
+     *
+     * @param $className
+     * @param $fieldName
+     * @param $fieldValue
+     * @return mixed
+     */
+    public function fetchField($className, $fieldName, $fieldValue)
+    {
+        // Build SQL statement
+        $sql = 'SELECT *
+        FROM `'.$className::$_table_name.'`
+        WHERE `'.$fieldName.'` = '.$this->driver->quote($fieldValue);
+
+        $result = $this->fetch($sql);
+
+        // First object from result
+        return array_shift($result);
+    }
+
     public function create($className, & $object = null)
     {
         // ??

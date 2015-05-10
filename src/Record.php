@@ -42,44 +42,39 @@ class Record implements \samson\core\iModuleViewable, \ArrayAccess
      * Если идентификатор > 0 - выполняется поиск записи в БД и привязка к ней в случае нахождения
      *
      * @param mixed $id Идентификатор объекта в БД
-     * @param string $class_name Имя класса
+     * @param string $className Имя класса
      */
-    public function __construct($id = null, $class_name = null, $database = null)
+    public function __construct($id = null, $className = null, $database = null)
     {
-        // TODO: $this->database should be removed
+        // TODO: db() should be removed
         // Get database layer
         $this->database = isset($database) ? $database : db();
 
         // Get current class name if none is passed
         $this->className = isset($this->className) ? $this->className : get_class($this);
 
-        //if( get_class($this) == 'Order') elapsed('ЩКВУК!!!');
-
-        // Если установлен флаг создания объекта без привязки к записи в БД
-        if ($id === false) { /* Пустое условие для оптимизации */
-        } else {
-            // Если идентификатор записи в БД НЕ передан
+        // If identifier is not false
+        if ($id !== false) {
+            //
             if (!isset($id)) {
                 $this->create();
-            } // Мы получили положительный идентификатор и нашли запись в БД с ним - Выполним привязку данного объекта к записи БД
-            else {
-                if (null !== ($db_record = $this->database->find_by_id($class_name, $id))) {
-                    // Если по переданному ID запись была успешно получена из БД
-                    // установим его как основной идентификатор объекта
-                    $this->id = $id;
+            } else if (null !== ($db_record = $this->database->fetchField($className, $className::$_primary, $id))) {
+                // Если по переданному ID запись была успешно получена из БД
+                // установим его как основной идентификатор объекта
+                $this->id = $id;
 
-                    // Пробежимся по переменным класса
-                    foreach ($db_record as $var => $value) {
-                        $this->$var = $value;
-                    }
-
-                    // Установим флаг привязки к БД
-                    $this->attached = true;
+                // Пробежимся по переменным класса
+                foreach ($db_record as $var => $value) {
+                    $this->$var = $value;
                 }
+
+                // Установим флаг привязки к БД
+                $this->attached = true;
             }
 
+
             // Зафиксируем данный класс в локальном кеше
-            self::$instances[$class_name][$this->id] = $this;
+            self::$instances[$this->className][$this->id] = $this;
         }
     }
 
@@ -121,15 +116,12 @@ class Record implements \samson\core\iModuleViewable, \ArrayAccess
         // Если данный объект еще привязан к записи в БД - выполним обновление записи в БД
         if ($this->attached) {
             $this->database->update($this->className, $this);
-        } // Иначе создадим новую запись с привязкой к данному объекту
-        else {
+        } else { // Иначе создадим новую запись с привязкой к данному объекту
             $this->create();
         }
 
-        //elapsed('saving to cache:'.get_class($this).'-'.$this->id);
-
-        // Обновим указатель на текущую запись в локальном кеше АктивРекорд
-        self::$instances[ns_classname(get_class($this), '')][$this->id] = &$this;
+        // Store instance in cache
+        self::$instances[$this->className][$this->id] = & $this;
     }
 
     /**    @see idbRecord::delete() */
