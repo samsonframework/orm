@@ -50,7 +50,7 @@ class Database
         if (!isset($this->driver)) {
 
             // Create connection string
-            $dsn = $driver . ':host=' . $host . ';port='.$port.';dbname=' . $database . ';charset=' . $charset;
+            $dsn = $driver . ':host=' . $host . ';port=' . $port . ';dbname=' . $database . ';charset=' . $charset;
 
             $this->database = $database;
 
@@ -91,7 +91,7 @@ class Database
             // Store queries count
             $this->count++;
 
-            // Отметим затраченное время на выполнение запроса
+            // Count elapsed time
             $this->elapsed += microtime(true) - $tsLast;
         }
 
@@ -117,7 +117,7 @@ class Database
             // Store queries count
             $this->count++;
 
-            // Отметим затраченное время на выполнение запроса
+            // Count elapsed time
             $this->elapsed += microtime(true) - $tsLast;
         }
 
@@ -157,7 +157,7 @@ class Database
             // Store queries count
             $this->count++;
 
-            // Отметим затраченное время на выполнение запроса
+            // Count elapsed time
             $this->elapsed += microtime(true) - $tsLast;
         }
 
@@ -230,6 +230,44 @@ class Database
 
         // Return value in quotes
         return $value;
+    }
+
+    /**
+     * Prepare create & update SQL statements fields
+     * @param string $className Entity name
+     * @param Record $object Database object to get values(if needed)
+     * @param bool $straight Way of forming SQL field statements
+     * @return array Collection of key => value with SQL fields statements
+     */
+    protected function & getQueryFields($className, & $object = null, $straight = false)
+    {
+        // Результирующая коллекция
+        $collection = array();
+
+        // Установим флаг получения значений атрибутов из переданного объекта
+        $use_values = isset($object);
+
+        // Переберем "настоящее" имена атрибутов схемы данных для объекта
+        foreach ($className::$_table_attributes as $attribute => $map_attribute) {
+            // Отметки времени не заполняем
+            if ($className::$_types[$attribute] == 'timestamp') {
+                continue;
+            }
+
+            // Основной ключ не заполняем
+            if ($className::$_primary == $attribute) {
+                continue;
+            }
+
+            // Получим значение атрибута объекта защитив от инъекций, если объект передан
+            $value = $use_values ? $this->driver->quote($object->$map_attribute) : '';
+
+            // Добавим значение поля, в зависимости от вида вывывода метода
+            $collection[$map_attribute] = ($straight ? $className::$_table_name . '.' . $map_attribute . '=' : '') . $value;
+        }
+
+        // Вернем полученную коллекцию
+        return $collection;
     }
 
     /** @deprecated Use query() */
