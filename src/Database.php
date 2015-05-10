@@ -154,6 +154,18 @@ class Database implements DatabaseInterface
         $this->query($sql);
     }
 
+    /** Count query result */
+    public function count($className, $query)
+    {
+        // Get SQL
+        $sql = 'SELECT Count(*) as __Count FROM (' . $this->prepareSQL($className, $query) . ') as __table';
+
+        // Выполним запрос к БД
+        $result = $this->query($sql);
+
+        return $result[0]['__Count'];
+    }
+
     /**
      * Special accelerated function to retrieve db record fields instead of objects
      *
@@ -215,5 +227,4 @@ class Database implements DatabaseInterface
             // Handle disconnection error
         }
     }
-
 }
