@@ -71,11 +71,10 @@ class Database
     /**
      * Create new database record
      * @param string $className Entity class name
-     * @param string $identifier
      */
-    public function entity($className, $identifier = null)
+    public function entity($className)
     {
-        return new $className($identifier, $className, $this);
+        return new $className($this);
     }
 
     /**
