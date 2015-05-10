@@ -11,7 +11,7 @@ namespace samsonframework\orm;
  * Class Database
  * @package samsonframework\orm
  */
-class Database implements DatabaseInterface
+class Database
 {
     /** @var \PDO Database driver */
     protected $driver;
@@ -26,7 +26,17 @@ class Database implements DatabaseInterface
     protected $count;
 
 
-    /** {@inheritdoc} */
+    /**
+     * Connect to a database using driver with parameters
+     * @param string $database Database name
+     * @param string $username Database username
+     * @param string $password Database password
+     * @param string $host Database host(localhost by default)
+     * @param int $port Database port(3306 by default)
+     * @param string $driver Database driver for interaction(MySQL by default)
+     * @param string $charset Database character set
+     * @return bool True if connection to database was successful
+     */
     public function connect(
         $database,
         $username,
@@ -40,7 +50,7 @@ class Database implements DatabaseInterface
         if (!isset($this->driver)) {
 
             // Create connection string
-            $dsn = $driver . ':host=' . $host . ';dbname=' . $database . ';charset=' . $charset;
+            $dsn = $driver . ':host=' . $host . ';port='.$port.';dbname=' . $database . ';charset=' . $charset;
 
             $this->database = $database;
 
@@ -58,7 +68,11 @@ class Database implements DatabaseInterface
         }
     }
 
-    /** {@inheritdoc} */
+    /**
+     * High-level database query executor
+     * @param string $sql SQL statement
+     * @return mixed Database query result
+     */
     public function & query($sql)
     {
         $result = array();
@@ -205,15 +219,5 @@ class Database implements DatabaseInterface
     public function & simple_query($sql)
     {
         return $this->query($sql);
-    }
-
-    /** Destructor */
-    public function __destruct()
-    {
-        try {
-            unset($this->driver);
-        } catch (Exception $e) {
-            // Handle disconnection error
-        }
     }
 }
