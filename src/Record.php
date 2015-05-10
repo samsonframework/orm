@@ -44,15 +44,14 @@ class Record implements \samson\core\iModuleViewable, \ArrayAccess
      * @param mixed $id Идентификатор объекта в БД
      * @param string $className Имя класса
      */
-    public function __construct($className = null, $database = null)
+    public function __construct($database = null)
     {
         // TODO: db() should be removed
         // Get database layer
         $this->database = isset($database) ? $database : db();
 
-        // TODO: Remove ns_classname
         // Get current class name if none is passed
-        $this->className = isset($className) ? ns_classname($className, 'samson\activerecord') : get_class($this);
+        $this->className = get_class($this);
     }
 
     /**
