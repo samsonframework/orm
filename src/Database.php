@@ -69,6 +69,16 @@ class Database
     }
 
     /**
+     * Create new database record
+     * @param string $className Entity class name
+     * @param string $identifier
+     */
+    public function entity($className, $identifier = null)
+    {
+        return new $className($identifier, $className, $this);
+    }
+
+    /**
      * High-level database query executor
      * @param string $sql SQL statement
      * @return mixed Database query result
