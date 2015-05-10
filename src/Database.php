@@ -59,6 +59,32 @@ class Database implements DatabaseInterface
     }
 
     /** {@inheritdoc} */
+    public function & query($sql)
+    {
+        $result = array();
+
+        if (isset($this->driver)) {
+            // Store timestamp
+            $tsLast = microtime(true);
+
+            try {
+                // Perform database query
+                $result = $this->driver->query($sql)->execute();
+            } catch (\PDOException $e) {
+                echo("\n" . $sql . '-' . $e->getMessage());
+            }
+
+            // Store queries count
+            $this->count++;
+
+            // Отметим затраченное время на выполнение запроса
+            $this->elapsed += microtime(true) - $tsLast;
+        }
+
+        return $result;
+    }
+
+    /** {@inheritdoc} */
     public function & fetch($sql)
     {
         $result = array();
@@ -84,29 +110,26 @@ class Database implements DatabaseInterface
         return $result;
     }
 
-    /** {@inheritdoc} */
-    public function & query($sql)
+    /**
+     * Special accelerated function to retrieve db record fields instead of objects
+     *
+     * @param string $className
+     * @param dbQuery $query
+     * @param string $field
+     *
+     * @return array
+     */
+    public function & fetchColumn($className, $query, $field)
     {
-        $result = array();
+        // Get SQL
+        $sql = $this->prepareSQL($className, $query);
 
-        if (isset($this->driver)) {
-            // Store timestamp
-            $tsLast = microtime(true);
+        // Get table column index by its name
+        $columnIndex = array_search($field, array_values($className::$_table_attributes));
 
-            try {
-                // Perform database query
-                $result = $this->driver->query($sql)->execute();
-            } catch (\PDOException $e) {
-                echo("\n" . $sql . '-' . $e->getMessage());
-            }
+        $result = $this->driver->query($sql)->fetchAll(\PDO::FETCH_COLUMN, $columnIndex);
 
-            // Store queries count
-            $this->count++;
-
-            // Отметим затраченное время на выполнение запроса
-            $this->elapsed += microtime(true) - $tsLast;
-        }
-
+        // Вернем коллекцию полученных объектов
         return $result;
     }
 
@@ -156,29 +179,6 @@ class Database implements DatabaseInterface
         $result = $this->fetch($sql);
 
         return $result[0]['__Count'];
-    }
-
-    /**
-     * Special accelerated function to retrieve db record fields instead of objects
-     *
-     * @param string $className
-     * @param dbQuery $query
-     * @param string $field
-     *
-     * @return array
-     */
-    public function & findFields($className, $query, $field)
-    {
-        // Get SQL
-        $sql = $this->prepareSQL($className, $query);
-
-        // Get table column index by its name
-        $columnIndex = array_search($field, array_values($className::$_table_attributes));
-
-        $result = $this->driver->query($sql)->fetchAll(\PDO::FETCH_COLUMN, $columnIndex);
-
-        // Вернем коллекцию полученных объектов
-        return $result;
     }
 
     /**
