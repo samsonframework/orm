@@ -44,38 +44,15 @@ class Record implements \samson\core\iModuleViewable, \ArrayAccess
      * @param mixed $id Идентификатор объекта в БД
      * @param string $className Имя класса
      */
-    public function __construct($id = null, $className = null, $database = null)
+    public function __construct($className = null, $database = null)
     {
         // TODO: db() should be removed
         // Get database layer
         $this->database = isset($database) ? $database : db();
 
+        // TODO: Remove ns_classname
         // Get current class name if none is passed
-        $this->className = isset($this->className) ? $this->className : get_class($this);
-
-        // If identifier is not false
-        if ($id !== false) {
-            //
-            if (!isset($id)) {
-                $this->create();
-            } else if (null !== ($db_record = $this->database->fetchField($className, $className::$_primary, $id))) {
-                // Если по переданному ID запись была успешно получена из БД
-                // установим его как основной идентификатор объекта
-                $this->id = $id;
-
-                // Пробежимся по переменным класса
-                foreach ($db_record as $var => $value) {
-                    $this->$var = $value;
-                }
-
-                // Установим флаг привязки к БД
-                $this->attached = true;
-            }
-
-
-            // Зафиксируем данный класс в локальном кеше
-            self::$instances[$this->className][$this->id] = $this;
-        }
+        $this->className = isset($className) ? ns_classname($className, 'samson\activerecord') : get_class($this);
     }
 
     /**
@@ -86,17 +63,17 @@ class Record implements \samson\core\iModuleViewable, \ArrayAccess
         // Если запись уже привязана к БД - ничего не делаем
         if (!$this->attached) {
             // Получим имя класса
-            $class_name = $this->className;
+            $className = $this->className;
 
             // Получим переменные для запроса
-            extract($this->database->__get_table_data($class_name));
+            extract($this->database->__get_table_data($className));
 
             // Выполним создание записи в БД
             // и сразу заполним её значениями атрибутов объекта
-            $this->id = $this->database->create($class_name, $this);
+            $this->id = $this->database->create($className, $this);
 
             // Получим созданную запись из БД
-            $db_record = $this->database->find_by_id($class_name, $this->id);
+            $db_record = $this->database->find_by_id($className, $this->id);
 
             // Запишем все аттрибуты которые БД выставила новой записи
             foreach ($_attributes as $name => $r_name) {
