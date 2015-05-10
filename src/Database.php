@@ -112,9 +112,6 @@ class Database implements DatabaseInterface
 
     public function create($className, & $object = null)
     {
-        // Get all database table characteristics
-        extract($this->__get_table_data($className));
-
         // ??
         $fields = $this->getQueryFields($className, $object);
 
@@ -131,26 +128,20 @@ class Database implements DatabaseInterface
 
     public function update($className, & $object)
     {
-        // Get all database table characteristics
-        extract($this->__get_table_data($className));
-
         // ??
         $fields = $this->getQueryFields($className, $object, true);
 
         // Build SQL query
-        $sql = 'UPDATE `' . $_table_name . '` SET ' . implode(',',
-                $fields) . ' WHERE ' . $_table_name . '.' . $_primary . '="' . $object->id . '"';
+        $sql = 'UPDATE `' . $className::$_table_name . '` SET ' . implode(',',
+                $fields) . ' WHERE ' . $className::$_table_name . '.' . $className::$_primary . '="' . $object->id . '"';
 
         $this->query($sql);
     }
 
     public function delete($className, & $object)
     {
-        // Get all database table characteristics
-        extract($this->__get_table_data($className));
-
         // Build SQL query
-        $sql = 'DELETE FROM `' . $_table_name . '` WHERE ' . $_primary . ' = "' . $object->id . '"';
+        $sql = 'DELETE FROM `' . $className::$_table_name . '` WHERE ' . $className::$_primary . ' = "' . $object->id . '"';
 
         $this->query($sql);
     }
