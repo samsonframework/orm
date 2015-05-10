@@ -135,15 +135,32 @@ class Database
      */
     public function & fetchColumn($className, $query, $field)
     {
-        // Get SQL
-        $sql = $this->prepareSQL($className, $query);
+        $result = array();
 
-        // Get table column index by its name
-        $columnIndex = array_search($field, array_values($className::$_table_attributes));
+        if (isset($this->driver)) {
+            // Store timestamp
+            $tsLast = microtime(true);
 
-        $result = $this->driver->query($sql)->fetchAll(\PDO::FETCH_COLUMN, $columnIndex);
+            // Get SQL
+            $sql = $this->prepareSQL($className, $query);
 
-        // Вернем коллекцию полученных объектов
+            // Get table column index by its name
+            $columnIndex = array_search($field, array_values($className::$_table_attributes));
+
+            try {
+                // Perform database query
+                $result = $this->driver->query($sql)->fetchAll(\PDO::FETCH_COLUMN, $columnIndex);
+            } catch (\PDOException $e) {
+                echo("\n" . $sql . '-' . $e->getMessage());
+            }
+
+            // Store queries count
+            $this->count++;
+
+            // Отметим затраченное время на выполнение запроса
+            $this->elapsed += microtime(true) - $tsLast;
+        }
+
         return $result;
     }
 
