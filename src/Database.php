@@ -13,10 +13,10 @@ namespace samsonframework\orm;
  */
 class Database implements DatabaseInterface
 {
-    /** @var resource Database driver */
+    /** @var \PDO Database driver */
     protected $driver;
 
-    /** @var string Database name  */
+    /** @var string Database name */
     protected $database;
 
     /** @var int Amount of miliseconds spent on queries */
@@ -70,8 +70,8 @@ class Database implements DatabaseInterface
             try {
                 // Perform database query
                 $result = $this->driver->query($sql)->fetchAll();
-            } catch(\PDOException $e) {
-                echo("\n".$sql.'-'.$e->getMessage());
+            } catch (\PDOException $e) {
+                echo("\n" . $sql . '-' . $e->getMessage());
             }
 
             // Store queries count
@@ -119,7 +119,9 @@ class Database implements DatabaseInterface
         $fields = $this->getQueryFields($className, $object);
 
         // Build SQL query
-        $sql = 'INSERT INTO `' . $_table_name . '` (`' . implode('`,`', array_keys($fields)) . '`) VALUES (' . implode(',', $fields) . ')';
+        $sql = 'INSERT INTO `' . $className::$_table_name . '` (`'
+            . implode('`,`', array_keys($fields)) . '`)
+            VALUES (' . implode(',', $fields) . ')';
 
         $this->query($sql);
 
