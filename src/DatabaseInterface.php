@@ -37,9 +37,16 @@ interface DatabaseInterface
     );
 
     /**
-     * High-level database query
+     * High-level database query rows fetcher
      * @param string $sql SQL statement
      * @return array Key-value record set
+     */
+    public function & fetch($sql);
+
+    /**
+     * High-level database query
+     * @param string $sql SQL statement
+     * @return mixed Query execution result, true if ok
      */
     public function & query($sql);
 }

@@ -59,7 +59,7 @@ class Database implements DatabaseInterface
     }
 
     /** {@inheritdoc} */
-    public function & query($sql)
+    public function & fetch($sql)
     {
         $result = array();
 
@@ -84,8 +84,8 @@ class Database implements DatabaseInterface
         return $result;
     }
 
-    /** @deprecated Use query() */
-    public function & simple_query($sql)
+    /** {@inheritdoc} */
+    public function & query($sql)
     {
         $result = array();
 
@@ -96,8 +96,8 @@ class Database implements DatabaseInterface
             try {
                 // Perform database query
                 $result = $this->driver->query($sql)->execute();
-            } catch(\PDOException $e) {
-                echo("\n".$sql.'-'.$e->getMessage());
+            } catch (\PDOException $e) {
+                echo("\n" . $sql . '-' . $e->getMessage());
             }
 
             // Store queries count
@@ -121,7 +121,7 @@ class Database implements DatabaseInterface
         // Build SQL query
         $sql = 'INSERT INTO `' . $_table_name . '` (`' . implode('`,`', array_keys($fields)) . '`) VALUES (' . implode(',', $fields) . ')';
 
-        $this->simple_query($sql);
+        $this->query($sql);
 
         // Return last inserted row identifier
         return $this->driver->lastInsertId();
@@ -139,7 +139,7 @@ class Database implements DatabaseInterface
         $sql = 'UPDATE `' . $_table_name . '` SET ' . implode(',',
                 $fields) . ' WHERE ' . $_table_name . '.' . $_primary . '="' . $object->id . '"';
 
-        $this->simple_query($sql);
+        $this->query($sql);
     }
 
     public function delete($className, & $object)
@@ -150,7 +150,7 @@ class Database implements DatabaseInterface
         // Build SQL query
         $sql = 'DELETE FROM `' . $_table_name . '` WHERE ' . $_primary . ' = "' . $object->id . '"';
 
-        $this->simple_query($sql);
+        $this->query($sql);
     }
 
     /** Count query result */
@@ -160,7 +160,7 @@ class Database implements DatabaseInterface
         $sql = 'SELECT Count(*) as __Count FROM (' . $this->prepareSQL($className, $query) . ') as __table';
 
         // Выполним запрос к БД
-        $result = $this->query($sql);
+        $result = $this->fetch($sql);
 
         return $result[0]['__Count'];
     }
@@ -215,6 +215,12 @@ class Database implements DatabaseInterface
 
         // Return value in quotes
         return $value;
+    }
+
+    /** @deprecated Use query() */
+    public function & simple_query($sql)
+    {
+        return $this->query($sql);
     }
 
     /** Destructor */
