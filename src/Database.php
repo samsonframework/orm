@@ -128,7 +128,7 @@ class Database
      * Special accelerated function to retrieve db record fields instead of objects
      *
      * @param string $className
-     * @param dbQuery $query
+     * @param mixed $query
      * @param string $field
      *
      * @return array
