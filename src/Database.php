@@ -71,7 +71,7 @@ class Database implements DatabaseInterface
                 // Perform database query
                 $result = $this->driver->query($sql)->fetchAll();
             } catch(\PDOException $e) {
-                trace($sql.'-'.$e->getMessage());
+                echo("\n".$sql.'-'.$e->getMessage());
             }
 
             // Store queries count
@@ -97,9 +97,8 @@ class Database implements DatabaseInterface
                 // Perform database query
                 $result = $this->driver->query($sql)->execute();
             } catch(\PDOException $e) {
-                trace($sql.'-'.$e->getMessage());
+                echo("\n".$sql.'-'.$e->getMessage());
             }
-
 
             // Store queries count
             $this->count++;
@@ -122,7 +121,7 @@ class Database implements DatabaseInterface
         // Build SQL query
         $sql = 'INSERT INTO `' . $_table_name . '` (`' . implode('`,`', array_keys($fields)) . '`) VALUES (' . implode(',', $fields) . ')';
 
-        $this->query($sql);
+        $this->simple_query($sql);
 
         // Return last inserted row identifier
         return $this->driver->lastInsertId();
@@ -140,7 +139,7 @@ class Database implements DatabaseInterface
         $sql = 'UPDATE `' . $_table_name . '` SET ' . implode(',',
                 $fields) . ' WHERE ' . $_table_name . '.' . $_primary . '="' . $object->id . '"';
 
-        $this->query($sql);
+        $this->simple_query($sql);
     }
 
     public function delete($className, & $object)
@@ -151,7 +150,7 @@ class Database implements DatabaseInterface
         // Build SQL query
         $sql = 'DELETE FROM `' . $_table_name . '` WHERE ' . $_primary . ' = "' . $object->id . '"';
 
-        $this->query($sql);
+        $this->simple_query($sql);
     }
 
     /** Count query result */
