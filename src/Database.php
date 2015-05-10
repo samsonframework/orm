@@ -169,20 +169,11 @@ class Database implements DatabaseInterface
      */
     public function & findFields($className, $query, $field)
     {
-        // WTF?
-        $result = array();
-        if ($query->empty) {
-            return $result;
-        }
-
         // Get SQL
         $sql = $this->prepareSQL($className, $query);
 
-        // Get all database table characteristics
-        extract($this->__get_table_data($className));
-
         // Get table column index by its name
-        $columnIndex = array_search($field, array_values($_table_attributes));
+        $columnIndex = array_search($field, array_values($className::$_table_attributes));
 
         $result = $this->driver->query($sql)->fetchAll(\PDO::FETCH_COLUMN, $columnIndex);
 
