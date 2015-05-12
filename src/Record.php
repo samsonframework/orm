@@ -34,8 +34,10 @@ class Record implements \samson\core\iModuleViewable, \ArrayAccess
     /** @var Database Database layer */
     protected $database;
 
+    /** Serialization handler */
     public function __sleep()
     {
+        // List of serialized object fields
         return array('id', 'className', 'oneToOne', 'oneToMany', 'attached');
     }
 
