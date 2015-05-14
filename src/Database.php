@@ -61,12 +61,17 @@ class Database
             );
 
             try { // Connect to a database
+                // Check if configured database exists
                 $this->driver = new \PDO($dsn, $username, $password, $opt);
+                
                 $this->query("set character_set_client='utf8'");
 	            $this->query("set character_set_results='utf8'" );
 	            $this->query("set collation_connection='utf8_general_ci'");
+
             } catch (\PDOException $e) {
+                // TODO: Use logger interface
                 // Handle exception
+                die(__NAMESPACE__.' error:'.$e->getMessage());
             }
         }
     }
