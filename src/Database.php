@@ -92,7 +92,7 @@ class Database
 
             try {
                 // Perform database query
-                $result = $this->driver->query($sql)->execute();
+                $result = $this->driver->prepare($sql)->execute();
             } catch (\PDOException $e) {
                 echo("\n" . $sql . '-' . $e->getMessage());
             }
