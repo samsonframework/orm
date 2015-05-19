@@ -27,5 +27,6 @@
   },
   "config":{
     "github-protocols":["https"]
-  }
+  },
+  "extra": { "samsonphp_package_compressable": "1" }
 }
