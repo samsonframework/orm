@@ -115,11 +115,20 @@ class Database
         return $result;
     }
 
-    /** {@inheritdoc} */
+    /**
+     * Retrieve array of records from a database, if $className is passed method
+     * will try to create an object of that type. If request has failed than
+     * method will return empty array of stdClass all arrays regarding to $className is
+     * passed or not.
+     *
+     * @param string $sql           Query text
+     * @param string $className     Class name if we want to create object
+     * @return array Collection of arrays or objects
+     */
     public function & fetch($sql, $className = null)
     {
-        // Return value, configure to return correct type
-        $result = isset($className) ? new \stdClass() : array();
+        // Return value
+        $result = array();
 
         if (isset($this->driver)) {
             // Store timestamp
