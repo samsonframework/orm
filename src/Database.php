@@ -116,9 +116,10 @@ class Database
     }
 
     /** {@inheritdoc} */
-    public function & fetch($sql)
+    public function & fetch($sql, $className = null)
     {
-        $result = array();
+        // Return value, configure to return correct type
+        $result = isset($className) ? new \stdClass() : array();
 
         if (isset($this->driver)) {
             // Store timestamp
@@ -126,7 +127,11 @@ class Database
 
             try {
                 // Perform database query
-                $result = $this->driver->query($sql)->fetchAll();
+                if (!isset($className)) { // Return array
+                    $result = $this->driver->query($sql)->fetchAll(\PDO::FETCH_ASSOC);
+                } else { // Create object of passed class name
+                    $result = $this->driver->query($sql)->fetchAll(\PDO::FETCH_CLASS, $className, array(&$this));
+                }
             } catch (\PDOException $e) {
                 echo("\n" . $sql . '-' . $e->getMessage());
             }
@@ -182,11 +187,52 @@ class Database
     }
 
     /**
+     * Retrieve one record from a database, if $className is passed method
+     * will try to create an object of that type. If request has failed than
+     * method will return empty array or stdClass regarding to $className is
+     * passed or not.
      *
-     * @param $className
-     * @param $fieldName
-     * @param $fieldValue
-     * @return mixed
+     * @param string $sql           Query text
+     * @param string $className     Class name if we want to create object
+     * @return array|object Record as array or object
+     */
+    public function & fetchOne($sql, $className = null)
+    {
+        // Return value, configure to return correct type
+        $result = isset($className) ? new \stdClass() : array();
+
+        if (isset($this->driver)) {
+            // Store timestamp
+            $tsLast = microtime(true);
+
+            try {
+                // Perform database query
+                if (!isset($className)) { // Return array
+                    $result = $this->driver->query($sql)->fetch(\PDO::FETCH_ASSOC);
+                } else { // Create object of passed class name
+                    $result = $this->driver->query($sql)->fetchObject($className, array(&$this));
+                }
+
+            } catch (\PDOException $e) {
+                echo("\n" . $sql . '-' . $e->getMessage());
+            }
+
+            // Store queries count
+            $this->count++;
+
+            // Count elapsed time
+            $this->elapsed += microtime(true) - $tsLast;
+        }
+
+        return $result;
+    }
+
+    /**
+     * Get one record from database by its field value
+     * @param string $className Enitity
+     * @param string $fieldName Field name
+     * @param string $fieldValue Field value
+     * @return object Found object instance or an empty stdClass instance
      */
     public function fetchField($className, $fieldName, $fieldValue)
     {
@@ -195,10 +241,7 @@ class Database
         FROM `'.$className::$_table_name.'`
         WHERE `'.$fieldName.'` = '.$this->driver->quote($fieldValue);
 
-        $result = $this->fetch($sql);
-
-        // First object from result
-        return array_shift($result);
+        return $this->fetchOne($sql);
     }
 
     public function create($className, & $object = null)
