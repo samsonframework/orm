@@ -49,30 +49,15 @@ class Database
         // If we have not connected yet
         if (!isset($this->driver)) {
 
-            // Create connection string
-            $dsn = $driver . ':host=' . $host . ';port=' . $port . ';dbname=' . $database . ';charset=' . $charset;
-
             $this->database = $database;
 
-            // Set options
-            $opt = array(
-                \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
-                \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC
-            );
+            // Check if configured database exists
+            $this->driver = new PDO($host, $database, $username, $password, $charset, $port, $driver);
 
-            try { // Connect to a database
-                // Check if configured database exists
-                $this->driver = new \PDO($dsn, $username, $password, $opt);
-                
-                $this->query("set character_set_client='utf8'");
-	            $this->query("set character_set_results='utf8'" );
-	            $this->query("set collation_connection='utf8_general_ci'");
-
-            } catch (\PDOException $e) {
-                // TODO: Use logger interface
-                // Handle exception
-                die(__NAMESPACE__.' error:'.$e->getMessage());
-            }
+            // Set correct encodings
+            $this->query("set character_set_client='utf8'");
+            $this->query("set character_set_results='utf8'" );
+            $this->query("set collation_connection='utf8_general_ci'");
         }
     }
 
