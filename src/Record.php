@@ -37,8 +37,13 @@ class Record implements \samson\core\iModuleViewable, \ArrayAccess
     /** Serialization handler */
     public function __sleep()
     {
+	    $ignore = array('database','_table_name','_own_group','_primary','_attributes',
+		    '_table_attributes','_sql_from','_relations','_relation_alias',
+		    '_relation_type','_sql_select','_types','_indeces','_unique','_map','instances',
+		    'restricted');
+
         // List of serialized object fields
-        return array('id', 'className', 'oneToOne', 'oneToMany', 'attached');
+        return array_diff(array_keys(get_object_vars($this)), $ignore);
     }
 
     /**
