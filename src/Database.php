@@ -25,6 +25,14 @@ class Database
     /** @var int Amount queries executed */
     protected $count;
 
+    /**
+     * Get database name
+     * @return string
+     */
+    public function database()
+    {
+        return $this->database;
+    }
 
     /**
      * Connect to a database using driver with parameters
