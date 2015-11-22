@@ -33,6 +33,34 @@ class Record implements iModuleViewable, \ArrayAccess
 
     /** @var Database Database layer */
     protected $database;
+    
+    /**
+     * Find database record by column name and its value.
+     * This is generic method that should be used in nested classes to find its
+     * records by some its column values.
+     *
+     * @param Query $query Query object instance
+     * @param string $columnValue Column name for searching in calling class
+     * @param string $columnName Column value
+     * @param Record|null $return Variable to return found Record instance
+     * @return bool|null|Record True if 4th variable is passed and record has been found,
+     *                          False if 4th variable is passed and record has been found,
+     *                          Record instance if it was found and 4th variable has NOT been passed,
+     *                          NULL if record has NOT been found and 4th variable has NOT been passed
+     */
+    public static function byColumn(Query $query, $columnValue, $columnName, self & $return = null )
+    {
+        // Perform db request and get materials
+        if ($query->className(get_called_class())
+            ->cond($columnName, $columnValue)
+            ->exec($return)) {
+            // If only one argument is passed - return query result, otherwise bool
+            return func_num_args() > 3 ? true : $return;
+        }
+
+        // If only one argument is passed - return null, otherwise bool
+        return func_num_args() > 3 ? false : null;
+    }
 
     /** Serialization handler */
     public function __sleep()
