@@ -15,6 +15,9 @@ class Record implements iModuleViewable, \ArrayAccess
 
     /** Collection of class fields that would not be passed to module view */
     public static $restricted = array('attached', 'oneToOne', 'oneToMany', 'className');
+    
+    /** @var string Primary key column name */
+    public static $_primary;
 
     /** @var int Identifier */
     public $id = 0;
@@ -33,6 +36,21 @@ class Record implements iModuleViewable, \ArrayAccess
 
     /** @var Database Database layer */
     protected $database;
+    
+    /**
+     * Find database record by primary key value.
+     * This is generic method that should be used in nested classes to find its
+     * records by some its primary key value.
+     *
+     * @param Query $query Query object instance
+     * @param string $identifier Primary key value
+     * @return null|Record  Record instance or null
+     */
+    public static function byID(Query $query, $identifier)
+    {
+        // Perform db request and get materials
+        return static::oneByColumn($query, static::$_primary, $identifier);
+    }
     
     /**
      * Find database record by column name and its value.
