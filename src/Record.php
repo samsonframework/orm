@@ -47,7 +47,7 @@ class Record implements iModuleViewable, \ArrayAccess
      * @param Record $return Variable to return found database record
      * @return bool|null|Record  Record instance or null if 3rd parameter not passed
      */
-    public static function byID(Query $query, $identifier, &$return = null)
+    public static function byID(Query $query, $identifier, self &$return = null)
     {
         // Find record by identifier
         $return = static::oneByColumn($query, static::$_primary, $identifier);
