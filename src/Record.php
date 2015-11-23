@@ -44,12 +44,16 @@ class Record implements iModuleViewable, \ArrayAccess
      *
      * @param Query $query Query object instance
      * @param string $identifier Primary key value
-     * @return null|Record  Record instance or null
+     * @param Record $return Variable to return found database record
+     * @return bool|null|Record  Record instance or null if 3rd parameter not passed
      */
-    public static function byID(Query $query, $identifier)
+    public static function byID(Query $query, $identifier, &$return = null)
     {
-        // Perform db request and get materials
-        return static::oneByColumn($query, static::$_primary, $identifier);
+        // Find record by identifier
+        $return = static::oneByColumn($query, static::$_primary, $identifier);
+
+        // Return bool or record depending on parameters passed
+        return func_num_args() > 2 ? isset($return) : $return;
     }
     
     /**
