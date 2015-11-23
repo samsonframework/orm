@@ -42,12 +42,12 @@ class Record implements iModuleViewable, \ArrayAccess
      * This is generic method that should be used in nested classes to find its
      * records by some its primary key value.
      *
-     * @param Query $query Query object instance
+     * @param QueryInterface $query Query object instance
      * @param string $identifier Primary key value
      * @param Record $return Variable to return found database record
      * @return bool|null|Record  Record instance or null if 3rd parameter not passed
      */
-    public static function byID(Query $query, $identifier, self &$return = null)
+    public static function byID(QueryInterface $query, $identifier, self &$return = null)
     {
         // Find record by identifier
         $return = static::oneByColumn($query, static::$_primary, $identifier);
@@ -61,13 +61,13 @@ class Record implements iModuleViewable, \ArrayAccess
      * This is generic method that should be used in nested classes to find its
      * records by some its column values.
      *
-     * @param Query $query Query object instance
+     * @param QueryInterface $query Query object instance
      * @param string $columnValue Column name for searching in calling class
      * @param string $columnName Column value
      * @return null|Record  Record instance if it was found and 4th variable has NOT been passed,
      *                      NULL if record has NOT been found and 4th variable has NOT been passed
      */
-    public static function oneByColumn(Query $query, $columnValue, $columnName)
+    public static function oneByColumn(QueryInterface $query, $columnValue, $columnName)
     {
         // Perform db request and get materials
         return $query->className(get_called_class())
@@ -80,13 +80,13 @@ class Record implements iModuleViewable, \ArrayAccess
      * This is generic method that should be used in nested classes to find its
      * records by some its column values.
      *
-     * @param Query $query Query object instance
+     * @param QueryInterface $query Query object instance
      * @param string $columnValue Column name for searching in calling class
      * @param string $columnName Column value
      * @return Record[]  Record instance if it was found and 4th variable has NOT been passed,
      *                      NULL if record has NOT been found and 4th variable has NOT been passed
      */
-    public static function collectionByColumn(Query $query, $columnValue, $columnName)
+    public static function collectionByColumn(QueryInterface $query, $columnValue, $columnName)
     {
         // Perform db request and get materials
         return $query->className(get_called_class())
