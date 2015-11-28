@@ -83,7 +83,7 @@ class Database
      * @param string $sql SQL statement
      * @return mixed Database query result
      */
-    public function & query($sql)
+    public function &query($sql)
     {
         $result = array();
 
@@ -118,7 +118,7 @@ class Database
      * @param string $className     Class name if we want to create object
      * @return array Collection of arrays or objects
      */
-    public function & fetch($sql, $className = null)
+    public function &fetch($sql, $className = null)
     {
         // Return value
         $result = array();
@@ -157,7 +157,7 @@ class Database
      *
      * @return array
      */
-    public function & fetchColumn($className, $query, $field)
+    public function &fetchColumn($className, $query, $field)
     {
         $result = array();
 
@@ -198,7 +198,7 @@ class Database
      * @param string $className     Class name if we want to create object
      * @return array|object Record as array or object
      */
-    public function & fetchOne($sql, $className = null)
+    public function &fetchOne($sql, $className = null)
     {
         // Return value, configure to return correct type
         $result = isset($className) ? new \stdClass() : array();
@@ -321,7 +321,7 @@ class Database
      * @param bool $straight Way of forming SQL field statements
      * @return array Collection of key => value with SQL fields statements
      */
-    protected function & getQueryFields($className, & $object = null, $straight = false)
+    protected function &getQueryFields($className, & $object = null, $straight = false)
     {
         // Результирующая коллекция
         $collection = array();
@@ -353,7 +353,7 @@ class Database
     }
 
     /** @deprecated Use query() */
-    public function & simple_query($sql)
+    public function &simple_query($sql)
     {
         return $this->query($sql);
     }

@@ -44,8 +44,8 @@ class Record implements iModuleViewable, \ArrayAccess
      *
      * @param QueryInterface $query Query object instance
      * @param string $identifier Primary key value
-     * @param Record $return Variable to return found database record
-     * @return bool|null|Record  Record instance or null if 3rd parameter not passed
+     * @param self $return Variable to return found database record
+     * @return bool|null|self  Record instance or null if 3rd parameter not passed
      */
     public static function byID(QueryInterface $query, $identifier, self &$return = null)
     {
@@ -64,7 +64,7 @@ class Record implements iModuleViewable, \ArrayAccess
      * @param QueryInterface $query Query object instance
      * @param string $columnValue Column name for searching in calling class
      * @param string $columnName Column value
-     * @return null|Record  Record instance if it was found and 4th variable has NOT been passed,
+     * @return null|self  Record instance if it was found and 4th variable has NOT been passed,
      *                      NULL if record has NOT been found and 4th variable has NOT been passed
      */
     public static function oneByColumn(QueryInterface $query, $columnValue, $columnName)
@@ -83,7 +83,7 @@ class Record implements iModuleViewable, \ArrayAccess
      * @param QueryInterface $query Query object instance
      * @param string $columnValue Column name for searching in calling class
      * @param string $columnName Column value
-     * @return Record[]  Record instance if it was found and 4th variable has NOT been passed,
+     * @return self[]  Record instance if it was found and 4th variable has NOT been passed,
      *                      NULL if record has NOT been found and 4th variable has NOT been passed
      */
     public static function collectionByColumn(QueryInterface $query, $columnValue, $columnName)
