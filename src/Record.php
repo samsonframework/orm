@@ -42,15 +42,15 @@ class Record implements iModuleViewable, \ArrayAccess
      * This is generic method that should be used in nested classes to find its
      * records by some its primary key value.
      *
-     * @param Database $db Database instance
+     * @param QueryInterface $query Query object instance
      * @param string $identifier Primary key value
      * @param self $return Variable to return found database record
      * @return bool|null|self  Record instance or null if 3rd parameter not passed
      */
-    public static function byID(Database $db, $identifier, self &$return = null)
+    public static function byID(QueryInterface $query, $identifier, self &$return = null)
     {
         // Find record by identifier
-        $return = static::oneByColumn($db, static::$_primary, $identifier);
+        $return = static::oneByColumn($query, static::$_primary, $identifier);
 
         // Return bool or record depending on parameters passed
         return func_num_args() > 2 ? isset($return) : $return;
@@ -61,16 +61,18 @@ class Record implements iModuleViewable, \ArrayAccess
      * This is generic method that should be used in nested classes to find its
      * records by some its column values.
      *
-     * @param Database $db Database instance
+     * @param QueryInterface $query Query object instance
      * @param string $columnValue Column name for searching in calling class
      * @param string $columnName Column value
      * @return null|self  Record instance if it was found and 4th variable has NOT been passed,
      *                      NULL if record has NOT been found and 4th variable has NOT been passed
      */
-    public static function oneByColumn(Database $db, $columnValue, $columnName)
+    public static function oneByColumn(QueryInterface $query, $columnValue, $columnName)
     {
         // Perform db request and get materials
-        return $db->fetchField(get_called_class(), $columnName, $columnValue);
+        return $query->className(get_called_class())
+            ->cond($columnName, $columnValue)
+            ->first();
     }
 
     /**
@@ -78,16 +80,14 @@ class Record implements iModuleViewable, \ArrayAccess
      * This is generic method that should be used in nested classes to find its
      * records by some its column values.
      *
-     * @param Database $db Database instance
+     * @param QueryInterface $query Query object instance
      * @param string $columnValue Column name for searching in calling class
      * @param string $columnName Column value
      * @return self[]  Record instance if it was found and 4th variable has NOT been passed,
      *                      NULL if record has NOT been found and 4th variable has NOT been passed
      */
-    public static function collectionByColumn(Database $db, $columnValue, $columnName)
+    public static function collectionByColumn(QueryInterface $query, $columnValue, $columnName)
     {
-        // Perform db request and get materials
-        return $db->fetchColumn(get_called_class(), $columnName, $columnValue);
         // Perform db request and get materials
         return $query->className(get_called_class())
             ->cond($columnName, $columnValue)
