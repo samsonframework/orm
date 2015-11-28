@@ -17,20 +17,9 @@ class Query extends QueryHandler
      */
     protected $parameters = array();
 
-    public function joins(
-        $targetClass,
-        $parentField = null,
-        $childField = null,
-        $relationType = TableRelation::T_ONE_TO_ONE,
-        $alias = null
-    ) {
-        return $this;
-    }
-
-
     /**
      * Reset all query parameters
-     * @return \samson\activerecord\Query Chaining
+     * @return self Chaining
      */
     public function flush()
     {
@@ -91,8 +80,6 @@ class Query extends QueryHandler
         }
     }
 
-
-
     /**
      * Perform database request and return different results depending on function arguments.
      * @see \samson\activerecord\Record
@@ -136,12 +123,12 @@ class Query extends QueryHandler
 
         // Is amount of records is specified
         if (isset($limit)) {
-            // If we have not enought records - return null
+            // If we have not enough records - return null
             if ($count < $limit) {
                 $result = null;
             } elseif ($limit === 1) { // If we need first record
                 $result = array_shift($result);
-            } elseif ($limit > 1) { // Slice array for nessesar amount
+            } elseif ($limit > 1) { // Slice array for necessary amount
                 $result = array_slice($result, 0, $limit);
             }
         }
