@@ -32,7 +32,7 @@ class Condition implements ConditionInterface
 
     /**
      * Add condition group to this condition group
-     * @param self $condition Condition group to be added
+     * @param ConditionInterface $condition Condition group to be added
      * @return self Chaining
      */
     public function addCondition(ConditionInterface $condition)
