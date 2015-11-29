@@ -148,7 +148,9 @@ class Query extends QueryHandler implements QueryInterface
      */
     public function entity($entity = null)
     {
-        // TODO: Implement entity() method.
+        $this->class_name = isset($entity) ? $entity : $this->class_name;
+
+        return func_num_args() > 0 ? $this->class_name : $this;
     }
 
     /**
