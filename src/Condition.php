@@ -2,7 +2,7 @@
 namespace samsonframework\orm;
 
 /**
- * Universal class for storing query condition groups and arguments
+ * Query condition arguments group
  * @author Vitaly Iegorov <egorov@samsonos.com>
  * @version 2.0
  */
@@ -14,53 +14,51 @@ class Condition
     /** OR(disjunction) - Condition relation type */
     const REL_OR = 'OR';
 
-    /**
-     * Arguments collection
-     * @see \samson\activerecord\Argument
-     */
+    /** @var Argument[] Collection of condition arguments */
     public $arguments = array();
 
-    /** Arguments relation */
+    /** @var string Relation logic between arguments */
     public $relation = self::REL_AND;
+
+    public function addArgument(Argument $argument)
+    {
+        // Add condition as current condition argument
+        $this->arguments[] = $argument;
+    }
+
+    public function addCondition(self $condition)
+    {
+        // Add condition as current condition argument
+        $this->arguments[] = $condition;
+    }
 
     /**
      * Generic condition addiction function
-     * @param \samson\activerecord\Condition|\samson\activerecord\Argument|string $argument Entity for adding to arguments collection
+     * @param self|Argument|string $argument Entity for adding to arguments collection
      * @param string $value Argument value
      * @param string $relation Relation between argument and value
-     * @return $this Chaining
+     * @return self Chaining
      */
     public function add($argument, $value = '', $relation = Relation::EQUAL)
     {
-        // If query Condition object is passed
-        if (is_a($argument, ns_classname('Condition', 'samson\activerecord'))) {
-            // Add condition as current condition argument
-            $this->arguments[] = $argument;
-        } // If query Argument object is passed
-        else {
-            if (is_a($argument, ns_classname('Argument', 'samson\activerecord'))) {
-                // Add argument to arguments collection
-                $this->arguments[] = $argument;
-            } // If string - consider it as argument field name
-            else {
-                if (is_string($argument)) {
-                    // Add new argument to arguments collection
-                    $this->arguments[] = new Argument($argument, $value, $relation);
-                }
-            }
+        if (is_string($argument) || is_scalar($argument)) {
+            // Add new argument to arguments collection
+            $this->arguments[] = new Argument($argument, $value, $relation);
+        } elseif (is_a($argument, get_class($this))) {
+            $this->addCondition($argument);
+        } elseif (is_a($argument, __NAMESPACE__.'Argument')) {
+            $this->addArgument($argument);
         }
 
         return $this;
     }
 
     /**
-     * Construcor
-     * @param string $relation Relation type beetween arguments
+     * Constructor
+     * @param string $relation Relation type between arguments
      */
     public function __construct($relation = null)
     {
-        if (isset($relation)) {
-            $this->relation = $relation;
-        }
+        $this->relation = isset($relation) ? $relation : self::REL_AND;
     }
 }
