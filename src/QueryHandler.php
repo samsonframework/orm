@@ -6,7 +6,7 @@ namespace samsonframework\orm;
  * @author Vitaly Iegorov <egorov@samsonos.com>
  * @version 2.0
  */
-class QueryHandler implements QueryInterface
+class QueryHandler
 {
     /** Collection of external query handlers(callbacks) */
     private $handlers = array();

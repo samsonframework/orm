@@ -2,35 +2,21 @@
 namespace samsonframework\orm;
 
 /**
- * Universal class for creating database queries 
+ * Database query builder and executer.
  * @author Vitaly Iegorov <egorov@samsonos.com>
  * @version 2.0
  */
-class Query extends QueryHandler
+class Query extends QueryHandler implements QueryInterface
 {
-    /** Class name for interacting with database */
+    /** @var string Class name for interacting with database */
     protected $class_name;
 
-    /**
-     * Collection of query parameters objects
-     * @see \samson\activerecord\QueryParams
-     */
+    /** @var QueryInterface[] Collection of query parameters objects */
     protected $parameters = array();
-
-    public function joins(
-        $targetClass,
-        $parentField = null,
-        $childField = null,
-        $relationType = TableRelation::T_ONE_TO_ONE,
-        $alias = null
-    ) {
-        return $this;
-    }
-
 
     /**
      * Reset all query parameters
-     * @return \samson\activerecord\Query Chaining
+     * @return self Chaining
      */
     public function flush()
     {
@@ -92,7 +78,6 @@ class Query extends QueryHandler
     }
 
 
-
     /**
      * Perform database request and return different results depending on function arguments.
      * @see \samson\activerecord\Record
@@ -103,13 +88,14 @@ class Query extends QueryHandler
      * @param array $handlerArgs External callable handler arguments
      * @return boolean/array Boolean if $r_type > 0, otherwise array of request results
      */
-    protected function & execute(
+    protected function &execute(
         & $result = null,
         $rType = false,
         $limit = null,
         $handler = null,
         $handlerArgs = array()
-    ) {
+    )
+    {
         // Call handlers stack
         $this->_callHandlers();
 
@@ -152,5 +138,106 @@ class Query extends QueryHandler
         } else { // Parent function has no arguments, return request result
             return $result;
         }
+    }
+
+    /**
+     * Set query entity to work with.
+     *
+     * @param string $entity Entity identifier
+     * @return self|string Chaining or current entity identifier if nothing is passed
+     */
+    public function entity($entity = null)
+    {
+        // TODO: Implement entity() method.
+    }
+
+    /**
+     * Add condition to current query.
+     *
+     * @param string $fieldName Entity field name
+     * @param string $fieldValue Value
+     * @param string $relation Relation between field name and its value
+     * @return self Chaining
+     */
+    public function cond($fieldName, $fieldValue, $relation = '=')
+    {
+        // If empty array is passed
+        if (is_array($fieldValue) && !sizeof($fieldValue)) {
+            $this->empty = true;
+            return $this;
+        }
+
+        $fieldName = new Argument($fieldName, $fieldValue, $relation);
+
+        // If this field condition relates to base query entity
+        $destination = &$this->cConditionGroup;
+        if (property_exists($this->class_name, $fieldName)) {
+            // Add this condition to base entity condition group
+            $destination = &$this->own_condition;
+        }
+
+        // Добавим аргумент условия в выбранную группу условий
+        $destination->arguments[] = $fieldName;
+
+        // Вернем себя для цепирования
+        return $this;
+    }
+
+    /**
+     * Join entity to query.
+     *
+     * @param string $entityName Entity identifier
+     * @return self Chaining
+     */
+    public function join($entityName)
+    {
+        // TODO: We need to implement this logic
+
+        // Chaining
+        return $this;
+    }
+
+    /**
+     * Add query result grouping.
+     *
+     * @param string $fieldName Entity field identifier for grouping
+     * @return self Chaining
+     */
+    public function groupBy($fieldName)
+    {
+        $this->group[] = $fieldName;
+
+        // Chaining
+        return $this;
+    }
+
+    /**
+     * Add query result quantity limitation.
+     *
+     * @param int $offset Resulting offset
+     * @param null|int $quantity Amount of RecordInterface object to return
+     * @return self Chaining
+     */
+    public function limit($offset, $quantity = null)
+    {
+        $this->limit = array($offset, $quantity);
+
+        // Chaining
+        return $this;
+    }
+
+    /**
+     * Add query result sorting.
+     *
+     * @param string $fieldName Entity field identifier for worting
+     * @param string $order Sorting order
+     * @return self Chaining
+     */
+    public function orderBy($fieldName, $order = 'ASC')
+    {
+        $this->order[] = array($fieldName, $order);
+
+        // Chaining
+        return $this;
     }
 }
