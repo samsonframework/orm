@@ -22,9 +22,9 @@ class Condition
 
     /**
      * Add condition argument to this condition group
-     * @param Argument $argument Condition argument to be added
+     * @param ArgumentInterface $argument Condition argument to be added
      */
-    public function addArgument(Argument $argument)
+    public function addArgument(ArgumentInterface $argument)
     {
         // Add condition as current condition argument
         $this->arguments[] = $argument;
@@ -32,7 +32,7 @@ class Condition
 
     /**
      * Add condition group to this condition group
-     * @param Condition $condition Condition group to be added
+     * @param self $condition Condition group to be added
      */
     public function addCondition(self $condition)
     {

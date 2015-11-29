@@ -1,39 +1,35 @@
 <?php
 namespace samsonframework\orm;
 
+use samsonframework\orm\ArgumentInterface;
+
 /**
- * Universal class for storing query condition argument
+ * Database query condition argument.
  * @author Vitaly Iegorov <egorov@samsonos.com>
  * @version 2.0
  */
-class Argument
+class Argument implements ArgumentInterface
 {
-    /** Query condition field name */
+    /** @var string Argument field name */
     public $field = '';
 
-    /** Query condition field value */
+    /** @var string Argument field value */
     public $value;
 
-    /**
-     * Query argument relation beetween field and value
-     * @var dbRelation
-     */
-    public $relation = Relation::EQUAL;
+    /** @var dbRelation Argument relation between field and its value */
+    public $relation = ArgumentInterface::EQUAL;
 
     /**
-     * Construcor
-     * @param string $relation Query argument relation beetween field and value
+     * Constructor
+     * @param string $field Argument field name
+     * @param string $value Argument field value
+     * @param string $relation Argument relation between field and its value
      * @see \samson\activerecord\Argument:relation
      */
-    public function __construct($field, $value, $relation = Relation::EQUAL)
+    public function __construct($field, $value, $relation = ArgumentInterface::EQUAL)
     {
-        // Установим поле условия
         $this->field = $field;
-
-        // Установим значение поля условия
         $this->value = $value;
-
-        // Установим отношение
-        $this->relation = !isset($relation) ? Relation::EQUAL : $relation;
+        $this->relation = !isset($relation) ? ArgumentInterface::EQUAL : $relation;
     }
 }
