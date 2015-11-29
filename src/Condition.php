@@ -46,13 +46,13 @@ class Condition implements ConditionInterface
     /**
      * Generic condition addiction function
      * @param string $argument Entity for adding to arguments collection
-     * @param string $value Argument value
+     * @param mixed $value Argument value
      * @param string $relation Relation between argument and value
      * @return self Chaining
      */
-    public function add($argument, $value = '', $relation = Relation::EQUAL)
+    public function add($argument, $value, $relation = ArgumentInterface::EQUAL)
     {
-        if (is_string($argument) || is_scalar($argument)) {
+        if (is_string($argument)) {
             // Add new argument to arguments collection
             $this->arguments[] = new Argument($argument, $value, $relation);
         }

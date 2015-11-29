@@ -22,7 +22,7 @@ class Argument implements ArgumentInterface
     /**
      * Constructor
      * @param string $field Argument field name
-     * @param string $value Argument field value
+     * @param mixed $value Argument field value
      * @param string $relation Argument relation between field and its value
      * @see \samson\activerecord\Argument:relation
      */
