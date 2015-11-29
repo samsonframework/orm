@@ -20,12 +20,20 @@ class Condition
     /** @var string Relation logic between arguments */
     public $relation = self::REL_AND;
 
+    /**
+     * Add condition argument to this condition group
+     * @param Argument $argument Condition argument to be added
+     */
     public function addArgument(Argument $argument)
     {
         // Add condition as current condition argument
         $this->arguments[] = $argument;
     }
 
+    /**
+     * Add condition group to this condition group
+     * @param Condition $condition Condition group to be added
+     */
     public function addCondition(self $condition)
     {
         // Add condition as current condition argument
