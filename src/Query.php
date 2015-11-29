@@ -11,8 +11,17 @@ class Query extends QueryHandler implements QueryInterface
     /** @var string Class name for interacting with database */
     protected $class_name;
 
-    /** @var QueryInterface[] Collection of query parameters objects */
+    /** @var self[] Collection of query parameters objects */
     protected $parameters = array();
+
+    /** @var array Collection of entity field names for sorting order */
+    protected $sorting = array();
+
+    /** @var array Collection of entity field names for grouping query results */
+    protected $grouping = array();
+
+    /** @var array Collection of query results limitations */
+    protected $limitation = array();
 
     /**
      * Reset all query parameters
@@ -20,6 +29,7 @@ class Query extends QueryHandler implements QueryInterface
      */
     public function flush()
     {
+        // TODO: Do we need it?
         foreach ($this->parameters as $param) {
             $param->flush();
         }
@@ -207,7 +217,7 @@ class Query extends QueryHandler implements QueryInterface
      */
     public function groupBy($fieldName)
     {
-        $this->group[] = $fieldName;
+        $this->grouping[] = $fieldName;
 
         // Chaining
         return $this;
@@ -222,7 +232,7 @@ class Query extends QueryHandler implements QueryInterface
      */
     public function limit($offset, $quantity = null)
     {
-        $this->limit = array($offset, $quantity);
+        $this->limitation = array($offset, $quantity);
 
         // Chaining
         return $this;
@@ -237,7 +247,7 @@ class Query extends QueryHandler implements QueryInterface
      */
     public function orderBy($fieldName, $order = 'ASC')
     {
-        $this->order[] = array($fieldName, $order);
+        $this->sorting[] = array($fieldName, $order);
 
         // Chaining
         return $this;
