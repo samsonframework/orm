@@ -35,7 +35,7 @@ class Condition implements ConditionInterface
      * @param self $condition Condition group to be added
      * @return self Chaining
      */
-    public function addCondition(self $condition)
+    public function addCondition(ConditionInterface $condition)
     {
         // Add condition as current condition argument
         $this->arguments[] = $condition;
