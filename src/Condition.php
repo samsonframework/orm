@@ -41,6 +41,14 @@ class Condition implements ConditionInterface
     }
 
     /**
+     * @return int Amount of condition group arguments
+     */
+    public function size()
+    {
+        return sizeof($this->arguments);
+    }
+
+    /**
      * Generic condition addiction function
      * @param string $argument Entity for adding to arguments collection
      * @param mixed $value Argument value
