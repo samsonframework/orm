@@ -230,6 +230,23 @@ class Database
     }
 
     /**
+     * Get collection record from database by its field value
+     * @param string $className Enitity
+     * @param string $fieldName Field name
+     * @param string $fieldValue Field value
+     * @return object[] Found object instance or an empty stdClass instance
+     */
+    public function fetchCollectionByField($className, $fieldName, $fieldValue)
+    {
+        // Build SQL statement
+        $sql = 'SELECT *
+        FROM `'.$className::$_table_name.'`
+        WHERE `'.$fieldName.'` = '.$this->driver->quote($fieldValue);
+
+        return $this->fetch($sql);
+    }
+
+    /**
      * Get one record from database by its field value
      * @param string $className Enitity
      * @param string $fieldName Field name
