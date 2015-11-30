@@ -51,7 +51,7 @@ class Query extends QueryHandler implements QueryInterface
      */
     public function __construct($entity, Database &$database)
     {
-        $this->database = $database;
+        $this->database = &$database;
         $this->entity($entity);
         $this->flush();
     }
@@ -110,7 +110,7 @@ class Query extends QueryHandler implements QueryInterface
         $this->_callHandlers();
 
         // Perform DB request
-        $return = db()->fetchColumn($this->class_name, $this, $fieldName);
+        $return = $this->database->fetchColumn($this->class_name, $this, $fieldName);
 
         $success = is_array($return) && sizeof($return);
 
@@ -136,25 +136,13 @@ class Query extends QueryHandler implements QueryInterface
     protected function &execute(
         & $result = null,
         $rType = false,
-        $limit = null,
-        $handler = null,
-        $handlerArgs = array()
-    )
-    {
+        $limit = null
+    ) {
         // Call handlers stack
         $this->_callHandlers();
 
         // Perform DB request
-        $result = db()->find($this->class_name, $this);
-
-        // If external result handler is passed - use it
-        if (isset($handler)) {
-            // Add results collection to array
-            array_unshift($handlerArgs, $result);
-
-            // Call external handler with parameters
-            $result = call_user_func_array($handler, $handlerArgs);
-        }
+        $result = $this->database->find($this->class_name, $this);
 
         // Clear this query
         $this->flush();
