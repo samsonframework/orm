@@ -6,6 +6,7 @@
  * Time: 13:05
  */
 namespace samsonframework\orm;
+use samsonframework\orm\exception\EntityNotFound;
 
 /**
  * Class Database
