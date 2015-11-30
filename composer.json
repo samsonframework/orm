@@ -16,8 +16,7 @@
     "samsonframework/base": "*"
   },
   "require-dev": {
-    "phpunit/phpunit": "4.*",
-    "behat/behat": "*"
+    "phpunit/phpunit": "4.*"
   },
   "minimum-stability": "dev",
   "license": "Open Software License (OSL) v 3.0",
