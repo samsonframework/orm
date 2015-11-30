@@ -78,10 +78,19 @@ class Query extends QueryHandler implements QueryInterface
      * @param mixed $return External variable to store query results
      * @return mixed If no arguments passed returns query results collection, otherwise query success status
      */
-    public function exec(& $return = null)
+    public function exec(&$return = null)
     {
-        $args = func_num_args();
-        return $this->execute($return, $args);
+        // Call handlers stack
+        $this->_callHandlers();
+
+        /** @var RecordInterface[] Perform DB request */
+        $return = $this->database->find($this->class_name, $this);
+
+        // Clear this query
+        $this->flush();
+
+        // Return bool or collection
+        return func_num_args() ? sizeof($return) : $return;
     }
 
     /**
@@ -93,8 +102,17 @@ class Query extends QueryHandler implements QueryInterface
      */
     public function first(& $return = null)
     {
-        $args = func_num_args();
-        return $this->execute($return, $args, 1);
+        // Call handlers stack
+        $this->_callHandlers();
+
+        /** @var RecordInterface[] Perform DB request */
+        $return = array_shift($this->database->find($this->class_name, $this));
+
+        // Clear this query
+        $this->flush();
+
+        // Return bool or collection
+        return func_num_args() ? sizeof($return) : $return;
     }
 
     /**
@@ -104,7 +122,7 @@ class Query extends QueryHandler implements QueryInterface
      * @param string $return External variable to store query results
      * @return Ambigous <boolean, NULL, mixed>
      */
-    public function fields($fieldName, & $return = null)
+    public function fields($fieldName, &$return = null)
     {
         // Call handlers stack
         $this->_callHandlers();
@@ -112,65 +130,8 @@ class Query extends QueryHandler implements QueryInterface
         // Perform DB request
         $return = $this->database->fetchColumn($this->class_name, $this, $fieldName);
 
-        $success = is_array($return) && sizeof($return);
-
-        // If parent function has arguments - consider them as return value and return request status
-        if (func_num_args() - 1 > 0) {
-            return $success;
-        } else { // Parent function has no arguments, return request result
-            return $return;
-        }
-    }
-
-
-    /**
-     * Perform database request and return different results depending on function arguments.
-     * @see \samson\activerecord\Record
-     * @param array $result External variable to store dabatase request results collection
-     * @param integer|bool $rType Amount of arguments passed to parent function
-     * @param integer $limit Quantity of records to return
-     * @param callable $handler External callable handler for results modification
-     * @param array $handlerArgs External callable handler arguments
-     * @return boolean/array Boolean if $r_type > 0, otherwise array of request results
-     */
-    protected function &execute(
-        & $result = null,
-        $rType = false,
-        $limit = null
-    ) {
-        // Call handlers stack
-        $this->_callHandlers();
-
-        // Perform DB request
-        $result = $this->database->find($this->class_name, $this);
-
-        // Clear this query
-        $this->flush();
-
-        // Count records
-        $count = sizeof($result);
-
-        // Define is request was successful
-        $success = is_array($result) && $count;
-
-        // Is amount of records is specified
-        if (isset($limit)) {
-            // If we have not enought records - return null
-            if ($count < $limit) {
-                $result = null;
-            } elseif ($limit === 1) { // If we need first record
-                $result = array_shift($result);
-            } elseif ($limit > 1) { // Slice array for nessesar amount
-                $result = array_slice($result, 0, $limit);
-            }
-        }
-
-        // If parent function has arguments - consider them as return value and return request status
-        if ($rType > 0) {
-            return $success;
-        } else { // Parent function has no arguments, return request result
-            return $result;
-        }
+        // Return bool or collection
+        return func_num_args() > 1 ? sizeof($return) : $return;
     }
 
     /**
