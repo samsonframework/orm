@@ -26,15 +26,6 @@ class Database
     protected $count;
 
     /**
-     * Get database name
-     * @return string
-     */
-    public function database()
-    {
-        return $this->database;
-    }
-
-    /**
      * Connect to a database using driver with parameters
      * @param string $database Database name
      * @param string $username Database username
@@ -56,7 +47,6 @@ class Database
     ) {
         // If we have not connected yet
         if (!isset($this->driver)) {
-
             $this->database = $database;
 
             // Check if configured database exists
@@ -64,18 +54,42 @@ class Database
 
             // Set correct encodings
             $this->query("set character_set_client='utf8'");
-            $this->query("set character_set_results='utf8'" );
+            $this->query("set character_set_results='utf8'");
             $this->query("set collation_connection='utf8_general_ci'");
         }
     }
 
     /**
-     * Create new database record
-     * @param string $className Entity class name
+     * Get database name
+     * @return string
      */
-    public function entity($className)
+    public function database()
     {
-        return new $className($this);
+        return $this->database;
+    }
+
+    /**
+     * Create new database record
+     * @param string $entity Entity class name
+     * @return RecordInterface|null Entity instance
+     */
+    public function entity($entity)
+    {
+        if (class_exists($entity)) {
+            return new $entity($this);
+        }
+
+        return null;
+    }
+
+    /**
+     * Get entity query manager
+     * @param string $entity Entity identifier
+     * @return Query Query manager instance
+     */
+    public function manager($entity)
+    {
+        return new Query($entity);
     }
 
     /**
@@ -114,8 +128,8 @@ class Database
      * method will return empty array of stdClass all arrays regarding to $className is
      * passed or not.
      *
-     * @param string $sql           Query text
-     * @param string $className     Class name if we want to create object
+     * @param string $sql Query text
+     * @param string $className Class name if we want to create object
      * @return array Collection of arrays or objects
      */
     public function &fetch($sql, $className = null)
@@ -194,8 +208,8 @@ class Database
      * method will return empty array or stdClass regarding to $className is
      * passed or not.
      *
-     * @param string $sql           Query text
-     * @param string $className     Class name if we want to create object
+     * @param string $sql Query text
+     * @param string $className Class name if we want to create object
      * @return array|object Record as array or object
      */
     public function &fetchOne($sql, $className = null)
@@ -240,13 +254,13 @@ class Database
     {
         // Build SQL statement
         $sql = 'SELECT *
-        FROM `'.$className::$_table_name.'`
-        WHERE `'.$fieldName.'` = '.$this->driver->quote($fieldValue);
+        FROM `' . $className::$_table_name . '`
+        WHERE `' . $fieldName . '` = ' . $this->driver->quote($fieldValue);
 
         return $this->fetchOne($sql);
     }
 
-    public function create($className, & $object = null)
+    public function create($className, &$object = null)
     {
         // ??
         $fields = $this->getQueryFields($className, $object);
@@ -262,7 +276,7 @@ class Database
         return $this->driver->lastInsertId();
     }
 
-    public function update($className, & $object)
+    public function update($className, &$object)
     {
         // ??
         $fields = $this->getQueryFields($className, $object, true);
@@ -274,7 +288,7 @@ class Database
         $this->query($sql);
     }
 
-    public function delete($className, & $object)
+    public function delete($className, &$object)
     {
         // Build SQL query
         $sql = 'DELETE FROM `' . $className::$_table_name . '` WHERE ' . $className::$_primary . ' = "' . $object->id . '"';
