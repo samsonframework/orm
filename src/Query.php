@@ -185,12 +185,6 @@ class Query extends QueryHandler implements QueryInterface
     public function entity($entity = null)
     {
         if (func_num_args() > 0) {
-            // Old support for not full class names
-            if (strpos($entity, '\\') === false) {
-                // Add generic namespace
-                $entity = '\samson\activerecord\\'.$entity;
-            }
-
             if (class_exists($entity)) {
                 $this->flush();
                 $this->class_name = $entity;
