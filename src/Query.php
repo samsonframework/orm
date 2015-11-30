@@ -225,10 +225,10 @@ class Query extends QueryHandler implements QueryInterface
     /**
      * Add query condition as prepared Condition instance.
      *
-     * @param Condition $condition Condition to be added
+     * @param ConditionInterface $condition Condition to be added
      * @return self Chaining
      */
-    public function whereCondition(Condition $condition)
+    public function whereCondition(ConditionInterface $condition)
     {
         // Iterate condition arguments
         foreach ($condition as $argument) {
@@ -280,7 +280,7 @@ class Query extends QueryHandler implements QueryInterface
     public function join($entityName)
     {
         // TODO: We need to implement this logic
-        $entityName = '';
+        $entityName .= '';
 
         // Chaining
         return $this;
