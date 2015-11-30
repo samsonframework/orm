@@ -31,19 +31,6 @@ class Query extends QueryHandler implements QueryInterface
     protected $database;
 
     /**
-     * Calling this class will result as changing entity.
-     *
-     * @param String $entity
-     * @see self::entity()
-     * @return self Chaining
-     * @throws EntityNotFound
-     */
-    public function __invoke($entity)
-    {
-        return $this->entity($entity);
-    }
-
-    /**
      * Query constructor.
      * @param string|null $entity Entity identifier
      * @param Database Database instance
