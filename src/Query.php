@@ -269,20 +269,4 @@ class Query extends QueryHandler implements QueryInterface
         // Chaining
         return $this;
     }
-
-    /**
-     * Add condition by primary field
-     *
-     * @param string $value Primary field value
-     * @return self Chaining
-     */
-    public function id($value)
-    {
-        // PHP 5.2 get primary field
-        $_primary = null;
-        eval('$_primary = ' . $this->class_name . '::$_primary;');
-
-        // Set primary field value
-        return $this->where($_primary, $value);
-    }
 }
