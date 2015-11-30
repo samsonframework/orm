@@ -23,6 +23,12 @@ class Query extends QueryHandler implements QueryInterface
     /** @var array Collection of query results limitations */
     protected $limitation = array();
 
+    /** @var Condition Query base entity condition group */
+    protected $own_condition;
+
+    /** @var Condition Query entity condition group */
+    protected $cConditionGroup;
+
     /**
      * Reset all query parameters
      * @return self Chaining
@@ -164,34 +170,53 @@ class Query extends QueryHandler implements QueryInterface
     }
 
     /**
-     * Add condition to current query.
+     * Get correct query condition depending on entity field name.
+     * If base entity has field with this name - use base entity condition
+     * group, otherwise default condition group.
      *
      * @param string $fieldName Entity field name
+     * @return Condition Correct query condition group
+     */
+    protected function &getConditionGroup($fieldName)
+    {
+        if (property_exists($this->class_name, $fieldName)) {
+            // Add this condition to base entity condition group
+            return $this->own_condition;
+        }
+
+        return $this->cConditionGroup;
+    }
+
+    /**
+     * Add condition to current query.
+     *
+     * @param string|Condition|Argument $fieldName Entity field name
      * @param string $fieldValue Value
      * @param string $relation Relation between field name and its value
      * @return self Chaining
      */
-    public function cond($fieldName, $fieldValue, $relation = '=')
+    public function cond($fieldName, $fieldValue = null, $relation = '=')
     {
         // If empty array is passed
-        if (is_array($fieldValue) && !sizeof($fieldValue)) {
+        if (is_string($fieldName)) {
+            $this->getConditionGroup($fieldName)->add($fieldName, $fieldValue, $relation);
+        } elseif (is_array($fieldValue) && !sizeof($fieldValue)) {
             $this->empty = true;
             return $this;
+        } elseif (is_a($fieldName, __NAMESPACE__.'\Condition')) {
+            foreach ($fieldName as $argument) {
+                // If passed condition group has another condition group as argument
+                if (is_a($fieldName, __NAMESPACE__.'\Condition')) {
+                    // Go deeper in recursion
+                    return $this->cond($argument, $fieldValue, $relation);
+                } else { // Otherwise add condition argument to correct condition group
+                    $this->getConditionGroup($argument->field)->addArgument($fieldName);
+                }
+            }
+        } elseif (is_a($fieldName, __NAMESPACE__.'\Argument')) {
+            $this->getConditionGroup($fieldName->field)->addArgument($fieldName);
         }
 
-        $fieldName = new Argument($fieldName, $fieldValue, $relation);
-
-        // If this field condition relates to base query entity
-        $destination = &$this->cConditionGroup;
-        if (property_exists($this->class_name, $fieldName)) {
-            // Add this condition to base entity condition group
-            $destination = &$this->own_condition;
-        }
-
-        // Добавим аргумент условия в выбранную группу условий
-        $destination->arguments[] = $fieldName;
-
-        // Вернем себя для цепирования
         return $this;
     }
 
