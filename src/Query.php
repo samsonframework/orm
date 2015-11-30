@@ -62,19 +62,38 @@ class Query extends QueryHandler implements QueryInterface
     /**
      * Perform database request and get collection of database record objects.
      *
+     * @param string $fetcher Database manager fetching method
+     * @return mixed If no arguments passed returns query results collection, otherwise query success status
+     */
+    public function execute($fetcher = 'find')
+    {
+        // Call handlers stack
+        $this->callHandlers();
+
+        // Remove first argument
+        $args = func_get_args();
+        array_shift($args);
+
+        /** @var RecordInterface[] $return Perform DB request */
+        $return = call_user_func_array(array($this->database, $fetcher), $args);
+
+        // Clear this query
+        $this->flush();
+
+        // Return bool or collection
+        return $return;
+    }
+
+    /**
+     * Perform database request and get collection of database record objects.
+     *
      * @param mixed $return External variable to store query results
      * @return mixed If no arguments passed returns query results collection, otherwise query success status
      */
     public function exec(&$return = null)
     {
-        // Call handlers stack
-        $this->callHandlers();
-
         /** @var RecordInterface[] $return Perform DB request */
-        $return = $this->database->find($this->class_name, $this);
-
-        // Clear this query
-        $this->flush();
+        $return = $this->execute('find', $this->class_name, $this);
 
         // Return bool or collection
         return func_num_args() ? sizeof($return) : $return;
@@ -92,13 +111,12 @@ class Query extends QueryHandler implements QueryInterface
         // Add limitation
         $this->limit(1);
 
-        /** @var RecordInterface[] $return Perform DB request and get first element */
-        $return = ($this->exec());
-        // Return first element
+        /** @var RecordInterface[] $return Perform DB request */
+        $return = $this->execute('find', $this->class_name, $this);
         $return = sizeof($return) ? array_shift($return) : null;
 
         // Return bool or collection
-        return func_num_args() ? isset($return) : $return;
+        return func_num_args() ? sizeof($return) : $return;
     }
 
     /**
@@ -111,14 +129,11 @@ class Query extends QueryHandler implements QueryInterface
      */
     public function fields($fieldName, &$return = null)
     {
-        // Call handlers stack
-        $this->callHandlers();
-
-        // Perform DB request
-        $return = $this->database->fetchColumn($this->class_name, $this, $fieldName);
+        /** @var RecordInterface[] $return Perform DB request */
+        $return = $this->execute('fetchColumn', $this->class_name, $this, $fieldName);
 
         // Return bool or collection
-        return func_num_args() > 1 ? sizeof($return) : $return;
+        return func_num_args() ? sizeof($return) : $return;
     }
 
     /**
