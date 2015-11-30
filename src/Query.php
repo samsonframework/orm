@@ -192,6 +192,7 @@ class Query extends QueryHandler implements QueryInterface
             }
 
             if (class_exists($entity)) {
+                $this->flush();
                 $this->class_name = $entity;
             } else {
                 throw new EntityNotFound('['.$entity.'] not found');
