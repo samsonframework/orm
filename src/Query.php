@@ -68,7 +68,7 @@ class Query extends QueryHandler implements QueryInterface
     public function exec(&$return = null)
     {
         // Call handlers stack
-        $this->_callHandlers();
+        $this->callHandlers();
 
         /** @var RecordInterface[] Perform DB request */
         $return = $this->database->find($this->class_name, $this);
@@ -90,7 +90,7 @@ class Query extends QueryHandler implements QueryInterface
     public function first(& $return = null)
     {
         // Call handlers stack
-        $this->_callHandlers();
+        $this->callHandlers();
 
         /** @var RecordInterface[] Perform DB request */
         $return = array_shift($this->database->find($this->class_name, $this));
@@ -107,12 +107,13 @@ class Query extends QueryHandler implements QueryInterface
      * @see \samson\activerecord\Query::execute()
      * @param string $fieldName Record field name to get value from
      * @param string $return External variable to store query results
-     * @return Ambigous <boolean, NULL, mixed>
+     * @return mixed If no arguments passed returns query results first database record object,
+     * otherwise query success status
      */
     public function fields($fieldName, &$return = null)
     {
         // Call handlers stack
-        $this->_callHandlers();
+        $this->callHandlers();
 
         // Perform DB request
         $return = $this->database->fetchColumn($this->class_name, $this, $fieldName);
