@@ -164,9 +164,13 @@ class Query extends QueryHandler implements QueryInterface
      */
     public function entity($entity = null)
     {
-        $this->class_name = isset($entity) ? $entity : $this->class_name;
+        if (func_num_args() > 0) {
+            if (class_exists($entity)) {
+                $this->class_name = $entity;
+            }
+        }
 
-        return func_num_args() > 0 ? $this->class_name : $this;
+        return $this->class_name;
     }
 
     /**
