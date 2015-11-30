@@ -7,7 +7,6 @@
  */
 namespace samsonframework\orm;
 
-
 class PDO
 {
     protected $driver;

@@ -187,7 +187,7 @@ class Query extends QueryHandler implements QueryInterface
     /**
      * Add condition to current query.
      *
-     * @param string|Condition|Argument $fieldName Entity field name
+     * @param string $fieldName Entity field name
      * @param string $fieldValue Value
      * @param string $relation Relation between field name and its value
      * @return self Chaining
@@ -292,7 +292,7 @@ class Query extends QueryHandler implements QueryInterface
      * this is deprecated logic and this should be changed to use separate methods
      * for each argument type.
      *
-     * @param string|Condition|Argument $fieldName Entity field name
+     * @param string|ConditionInterface|ArgumentInterface $fieldName Entity field name
      * @param string $fieldValue Value
      * @param string $relation Relation between field name and its value
      * @deprecated @see self::where()
@@ -306,9 +306,9 @@ class Query extends QueryHandler implements QueryInterface
         } elseif (is_array($fieldValue) && !sizeof($fieldValue)) {
             $this->empty = true;
             return $this;
-        } elseif (is_a($fieldName, __NAMESPACE__.'\Condition')) {
+        } elseif (is_a($fieldName, __NAMESPACE__.'\ConditionInterface')) {
             $this->whereCondition($fieldName);
-        } elseif (is_a($fieldName, __NAMESPACE__.'\Argument')) {
+        } elseif (is_a($fieldName, __NAMESPACE__.'\ArgumentInterface')) {
             $this->getConditionGroup($fieldName->field)->addArgument($fieldName);
         }
 
