@@ -31,6 +31,17 @@ class Query extends QueryHandler implements QueryInterface
     protected $cConditionGroup;
 
     /**
+     * Query constructor.
+     * @param string|null $entity Entity identifier
+     * @throws EntityNotFound
+     */
+    public function __construct($entity = null)
+    {
+        $this->entity($entity);
+        $this->flush();
+    }
+
+    /**
      * Reset all query parameters
      * @return self Chaining
      */
@@ -40,6 +51,13 @@ class Query extends QueryHandler implements QueryInterface
         foreach ($this->parameters as $param) {
             $param->flush();
         }
+
+        $this->grouping = array();
+        $this->limitation = array();
+        $this->sorting = array();
+
+        $this->cConditionGroup = new Condition();
+        $this->own_condition = new Condition();
 
         return $this;
     }
@@ -167,11 +185,19 @@ class Query extends QueryHandler implements QueryInterface
     public function entity($entity = null)
     {
         if (func_num_args() > 0) {
+            // Old support for not full class names
+            if (strpos($entity, '\\') === false) {
+                // Add generic namespace
+                $entity = '\samson\activerecord\\'.$entity;
+            }
+
             if (class_exists($entity)) {
                 $this->class_name = $entity;
             } else {
                 throw new EntityNotFound('['.$entity.'] not found');
             }
+
+            return $this;
         }
 
         return $this->class_name;
@@ -223,7 +249,7 @@ class Query extends QueryHandler implements QueryInterface
                 // If passed condition group has another condition group as argument
                 if (is_a($fieldName, __NAMESPACE__.'\Condition')) {
                     // Go deeper in recursion
-                    return $this->cond($argument, $fieldValue, $relation);
+                    return $this->where($argument, $fieldValue, $relation);
                 } else { // Otherwise add condition argument to correct condition group
                     $this->getConditionGroup($argument->field)->addArgument($fieldName);
                 }
