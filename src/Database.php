@@ -245,34 +245,15 @@ class Database
         return $result;
     }
 
-    /**
-     * Get one record from database by its field value
-     * @param string $className Enitity
-     * @param string $fieldName Field name
-     * @param string $fieldValue Field value
-     * @return object Found object instance or an empty stdClass instance
-     */
-    public function fetchField($className, $fieldName, $fieldValue)
-    {
-        // Build SQL statement
-        $sql = 'SELECT *
-        FROM `' . $className::$_table_name . '`
-        WHERE `' . $fieldName . '` = ' . $this->driver->quote($fieldValue);
-
-        return $this->fetchOne($sql);
-    }
-
     public function create($className, &$object = null)
     {
         // ??
         $fields = $this->getQueryFields($className, $object);
 
-        // Build SQL query
-        $sql = 'INSERT INTO `' . $className::$_table_name . '` (`'
+        $this->query('INSERT INTO `' . $className::$_table_name . '` (`'
             . implode('`,`', array_keys($fields)) . '`)
-            VALUES (' . implode(',', $fields) . ')';
-
-        $this->query($sql);
+            VALUES (' . implode(',', $fields) . ')'
+        );
 
         // Return last inserted row identifier
         return $this->driver->lastInsertId();
@@ -280,22 +261,17 @@ class Database
 
     public function update($className, &$object)
     {
-        // ??
-        $fields = $this->getQueryFields($className, $object, true);
-
-        // Build SQL query
-        $sql = 'UPDATE `' . $className::$_table_name . '` SET ' . implode(',',
-                $fields) . ' WHERE ' . $className::$_table_name . '.' . $className::$_primary . '="' . $object->id . '"';
-
-        $this->query($sql);
+        $this->query('UPDATE `' . $className::$_table_name . '` SET '
+            . implode(',', $this->getQueryFields($className, $object, true))
+            . ' WHERE ' . $className::$_table_name . '.' . $className::$_primary . '="'
+            . $object->id . '"');
     }
 
     public function delete($className, &$object)
     {
-        // Build SQL query
-        $sql = 'DELETE FROM `' . $className::$_table_name . '` WHERE ' . $className::$_primary . ' = "' . $object->id . '"';
-
-        $this->query($sql);
+        $this->query('DELETE FROM `' . $className::$_table_name . '` WHERE '
+            . $className::$_primary . ' = "' . $object->id . '"'
+        );
     }
 
     /** Count query result */
