@@ -195,7 +195,7 @@ class Query extends QueryHandler implements QueryInterface
      * @param string $relation Relation between field name and its value
      * @return self Chaining
      */
-    public function cond($fieldName, $fieldValue = null, $relation = '=')
+    public function where($fieldName, $fieldValue = null, $relation = '=')
     {
         // If empty array is passed
         if (is_string($fieldName)) {
@@ -283,5 +283,18 @@ class Query extends QueryHandler implements QueryInterface
 
         // Chaining
         return $this;
+    }
+    /**
+     * Add condition to current query.
+     *
+     * @param string|Condition|Argument $fieldName Entity field name
+     * @param string $fieldValue Value
+     * @param string $relation Relation between field name and its value
+     * @deprecated @see self::where()
+     * @return self Chaining
+     */
+    public function cond($fieldName, $fieldValue = null, $relation = '=')
+    {
+        return $this->where($fieldName, $fieldValue, $relation);
     }
 }
