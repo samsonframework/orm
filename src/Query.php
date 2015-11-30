@@ -60,8 +60,8 @@ class Query extends QueryHandler implements QueryInterface
     }
 
     /**
-     * Perform database request and get collection of database record objects
-     * @see \samson\activerecord\Query::execute()
+     * Perform database request and get collection of database record objects.
+     *
      * @param mixed $return External variable to store query results
      * @return mixed If no arguments passed returns query results collection, otherwise query success status
      */
@@ -70,7 +70,7 @@ class Query extends QueryHandler implements QueryInterface
         // Call handlers stack
         $this->callHandlers();
 
-        /** @var RecordInterface[] Perform DB request */
+        /** @var RecordInterface[] $return Perform DB request */
         $return = $this->database->find($this->class_name, $this);
 
         // Clear this query
@@ -81,25 +81,24 @@ class Query extends QueryHandler implements QueryInterface
     }
 
     /**
-     * Perform database request and get first record from results collection
-     * @see \samson\activerecord\Query::execute()
+     * Perform database request and get first record from results collection.
+     *
      * @param mixed $return External variable to store query results
      * @return mixed If no arguments passed returns query results first database record object,
      * otherwise query success status
      */
-    public function first(& $return = null)
+    public function first(&$return = null)
     {
-        // Call handlers stack
-        $this->callHandlers();
+        // Add limitation
+        $this->limit(1);
 
-        /** @var RecordInterface[] Perform DB request */
-        $return = array_shift($this->database->find($this->class_name, $this));
-
-        // Clear this query
-        $this->flush();
+        /** @var RecordInterface[] $return Perform DB request and get first element */
+        $return = ($this->exec());
+        // Return first element
+        $return = sizeof($return) ? array_shift($return) : null;
 
         // Return bool or collection
-        return func_num_args() ? sizeof($return) : $return;
+        return func_num_args() ? isset($return) : $return;
     }
 
     /**
