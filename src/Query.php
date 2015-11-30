@@ -12,9 +12,6 @@ class Query extends QueryHandler implements QueryInterface
     /** @var string Class name for interacting with database */
     protected $class_name;
 
-    /** @var self[] Collection of query parameters objects */
-    protected $parameters = array();
-
     /** @var array Collection of entity field names for sorting order */
     protected $sorting = array();
 
@@ -30,13 +27,31 @@ class Query extends QueryHandler implements QueryInterface
     /** @var Condition Query entity condition group */
     protected $cConditionGroup;
 
+    /** @var Database Database instance */
+    protected $database;
+
+    /**
+     * Calling this class will result as changing entity.
+     *
+     * @param String $entity
+     * @see self::entity()
+     * @return self Chaining
+     * @throws EntityNotFound
+     */
+    public function __invoke($entity)
+    {
+        return $this->entity($entity);
+    }
+
     /**
      * Query constructor.
      * @param string|null $entity Entity identifier
+     * @param Database Database instance
      * @throws EntityNotFound
      */
-    public function __construct($entity = null)
+    public function __construct($entity, Database &$database)
     {
+        $this->database = $database;
         $this->entity($entity);
         $this->flush();
     }
@@ -47,11 +62,6 @@ class Query extends QueryHandler implements QueryInterface
      */
     public function flush()
     {
-        // TODO: Do we need it?
-        foreach ($this->parameters as $param) {
-            $param->flush();
-        }
-
         $this->grouping = array();
         $this->limitation = array();
         $this->sorting = array();
