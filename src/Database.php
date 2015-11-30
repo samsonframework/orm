@@ -82,8 +82,6 @@ class Database
         } else {
             throw new EntityNotFound('['.$entity.'] not found');
         }
-
-        return null;
     }
 
     /**
