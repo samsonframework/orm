@@ -19,6 +19,45 @@ class Record implements iModuleViewable, \ArrayAccess
     /** @var string Primary key column name */
     public static $_primary;
 
+    /** @var string Entity identifier */
+    public static $_table_name = "structure";
+
+    /** @var array Base entity grouping filed names */
+    public static $_own_group = array();
+
+    /** @var array Collection of entity field names */
+    public static $_attributes = array();
+
+    /** @var array Collection of entity real field names as values and other as keys */
+    public static $_table_attributes = array();
+
+    /** @var array Collection of FROM SQL parts for entity and possible joins */
+    public static $_sql_from = array();
+
+    /** @var array Collection of entity predefined possible join entities */
+    public static $_relations = array();
+
+    /** @var array Collection of possible joined entities field names to aliases */
+    public static $_relation_alias = array();
+
+    /** @var array Collection of possible joined entities relation types */
+    public static $_relation_type = array();
+
+    /** @var array Collection of SELECT SQL parts for entity and possible joins */
+    public static $_sql_select = array();
+
+    /** @var array Collection of entity field types */
+    public static $_types = array();
+
+    /** @var array Collection of entity indexed fields */
+    public static $_indeces = array();
+
+    /** @var array Collection of entity unique fields */
+    public static $_unique = array();
+
+    /** @var array Collection of entity optimized field names with real field names */
+    public static $_map = array();
+
     /** @var int Identifier */
     public $id = 0;
 
@@ -242,7 +281,6 @@ class Record implements iModuleViewable, \ArrayAccess
         // PHP 5.2 compliant get attributes
         $attributes = array();
         eval('$attributes = ' . $entity . '::$_attributes;');
-
 
         // Iterate all object attributes
         foreach ($attributes as $attribute) {
