@@ -19,7 +19,7 @@ class Database
     /** @var string Database name */
     protected $database;
 
-    /** @var int Amount of miliseconds spent on queries */
+    /** @var int Amount of milliseconds spent on queries */
     protected $elapsed;
 
     /** @var int Amount queries executed */
@@ -71,12 +71,15 @@ class Database
     /**
      * Create new database record
      * @param string $entity Entity class name
-     * @return RecordInterface|null Entity instance
+     * @return null|RecordInterface Entity instance
+     * @throws EntityNotFound
      */
     public function entity($entity)
     {
         if (class_exists($entity)) {
             return new $entity($this);
+        } else {
+            throw new EntityNotFound('['.$entity.'] not found');
         }
 
         return null;
