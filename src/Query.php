@@ -226,19 +226,22 @@ class Query extends QueryHandler implements QueryInterface
      * Add query condition as prepared Condition instance.
      *
      * @param Condition $condition Condition to be added
+     * @return self Chaining
      */
-    protected function whereCondition(Condition $condition)
+    public function whereCondition(Condition $condition)
     {
         // Iterate condition arguments
         foreach ($condition as $argument) {
             // If passed condition group has another condition group as argument
-            if (is_a($argument, __NAMESPACE__.'\Condition')) {
+            if (is_a($argument, __NAMESPACE__ . '\Condition')) {
                 // Go deeper in recursion
                 $this->whereCondition($argument);
             } else { // Otherwise add condition argument to correct condition group
                 $this->getConditionGroup($argument->field)->addArgument($argument);
             }
         }
+
+        return $this;
     }
 
     /**
@@ -261,13 +264,8 @@ class Query extends QueryHandler implements QueryInterface
 
             // Add condition argument
             $this->getConditionGroup($fieldName)->add($fieldName, $fieldValue, $relation);
-        } elseif (is_array($fieldValue) && !sizeof($fieldValue)) {
-            $this->empty = true;
-            return $this;
-        } elseif (is_a($fieldName, __NAMESPACE__.'\Condition')) {
-            $this->whereCondition($fieldName);
-        } elseif (is_a($fieldName, __NAMESPACE__.'\Argument')) {
-            $this->getConditionGroup($fieldName->field)->addArgument($fieldName);
+        } else {
+            throw new \InvalidArgumentException('You can only pass string as first argument');
         }
 
         return $this;
@@ -350,6 +348,9 @@ class Query extends QueryHandler implements QueryInterface
 
     /**
      * Add condition to current query.
+     * This method supports receives three possible types for $fieldName,
+     * this is deprecated logic and this should be changed to use separate methods
+     * for each argument type.
      *
      * @param string|Condition|Argument $fieldName Entity field name
      * @param string $fieldValue Value
@@ -359,6 +360,18 @@ class Query extends QueryHandler implements QueryInterface
      */
     public function cond($fieldName, $fieldValue = null, $relation = '=')
     {
-        return $this->where($fieldName, $fieldValue, $relation);
+        // If empty array is passed
+        if (is_string($fieldName)) {
+            return $this->where($fieldName, $fieldValue, $relation);
+        } elseif (is_array($fieldValue) && !sizeof($fieldValue)) {
+            $this->empty = true;
+            return $this;
+        } elseif (is_a($fieldName, __NAMESPACE__.'\Condition')) {
+            $this->whereCondition($fieldName);
+        } elseif (is_a($fieldName, __NAMESPACE__.'\Argument')) {
+            $this->getConditionGroup($fieldName->field)->addArgument($fieldName);
+        }
+
+        return $this;
     }
 }
