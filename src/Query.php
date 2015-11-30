@@ -125,23 +125,19 @@ class Query extends QueryHandler implements QueryInterface
      * Set query entity to work with.
      *
      * @param string $entity Entity identifier
-     * @return Query|string Chaining or current entity identifier if nothing is passed
+     * @return Query Chaining
      * @throws EntityNotFound
      */
-    public function entity($entity = null)
+    public function entity($entity)
     {
-        if (func_num_args() > 0) {
-            if (class_exists($entity)) {
-                $this->flush();
-                $this->class_name = $entity;
-            } else {
-                throw new EntityNotFound('['.$entity.'] not found');
-            }
-
-            return $this;
+        if (class_exists($entity)) {
+            $this->flush();
+            $this->class_name = $entity;
+        } else {
+            throw new EntityNotFound('['.$entity.'] not found');
         }
 
-        return $this->class_name;
+        return $this;
     }
 
     /**
