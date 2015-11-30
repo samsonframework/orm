@@ -148,7 +148,7 @@ class Query extends QueryHandler implements QueryInterface
      * @param string $fieldName Entity field name
      * @return Condition Correct query condition group
      */
-    protected function &getConditionGroup($fieldName)
+    protected function &conditionGroup($fieldName)
     {
         if (property_exists($this->class_name, $fieldName)) {
             // Add this condition to base entity condition group
@@ -173,7 +173,7 @@ class Query extends QueryHandler implements QueryInterface
                 // Go deeper in recursion
                 $this->whereCondition($argument);
             } else { // Otherwise add condition argument to correct condition group
-                $this->getConditionGroup($argument->field)->addArgument($argument);
+                $this->conditionGroup($argument->field)->addArgument($argument);
             }
         }
 
@@ -199,7 +199,7 @@ class Query extends QueryHandler implements QueryInterface
             }
 
             // Add condition argument
-            $this->getConditionGroup($fieldName)->add($fieldName, $fieldValue, $relation);
+            $this->conditionGroup($fieldName)->add($fieldName, $fieldValue, $relation);
         } else {
             throw new \InvalidArgumentException('You can only pass string as first argument');
         }
