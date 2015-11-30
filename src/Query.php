@@ -223,6 +223,25 @@ class Query extends QueryHandler implements QueryInterface
     }
 
     /**
+     * Add query condition as prepared Condition instance.
+     *
+     * @param Condition $condition Condition to be added
+     */
+    protected function whereCondition(Condition $condition)
+    {
+        // Iterate condition arguments
+        foreach ($condition as $argument) {
+            // If passed condition group has another condition group as argument
+            if (is_a($argument, __NAMESPACE__.'\Condition')) {
+                // Go deeper in recursion
+                $this->whereCondition($argument);
+            } else { // Otherwise add condition argument to correct condition group
+                $this->getConditionGroup($argument->field)->addArgument($argument);
+            }
+        }
+    }
+
+    /**
      * Add condition to current query.
      *
      * @param string|Condition|Argument $fieldName Entity field name
@@ -246,15 +265,7 @@ class Query extends QueryHandler implements QueryInterface
             $this->empty = true;
             return $this;
         } elseif (is_a($fieldName, __NAMESPACE__.'\Condition')) {
-            foreach ($fieldName as $argument) {
-                // If passed condition group has another condition group as argument
-                if (is_a($fieldName, __NAMESPACE__.'\Condition')) {
-                    // Go deeper in recursion
-                    return $this->where($argument, $fieldValue, $relation);
-                } else { // Otherwise add condition argument to correct condition group
-                    $this->getConditionGroup($argument->field)->addArgument($fieldName);
-                }
-            }
+            $this->whereCondition($fieldName);
         } elseif (is_a($fieldName, __NAMESPACE__.'\Argument')) {
             $this->getConditionGroup($fieldName->field)->addArgument($fieldName);
         }
@@ -271,6 +282,7 @@ class Query extends QueryHandler implements QueryInterface
     public function join($entityName)
     {
         // TODO: We need to implement this logic
+        $entityName = '';
 
         // Chaining
         return $this;
