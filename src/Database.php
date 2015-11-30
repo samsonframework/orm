@@ -89,7 +89,7 @@ class Database
      */
     public function manager($entity)
     {
-        return new Query($entity);
+        return new Query($entity, $this);
     }
 
     /**
