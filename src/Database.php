@@ -7,8 +7,6 @@
  */
 namespace samsonframework\orm;
 
-use samsonframework\orm\exception\EntityNotFound;
-
 /**
  * Class Database
  * @package samsonframework\orm
@@ -81,17 +79,7 @@ class Database
         return $this->execute($sql);
     }
 
-    /** Count query result */
-    public function count($className, $query)
-    {
-        // Get SQL
-        $sql = 'SELECT Count(*) as __Count FROM (' . $this->prepareSQL($className, $query) . ') as __table';
 
-        // Выполним запрос к БД
-        $result = $this->fetch($sql);
-
-        return $result[0]['__Count'];
-    }
 
     /**
      * Intreal error beautifier
@@ -112,7 +100,7 @@ class Database
      * @param callback $fetcher Callback for fetching
      * @return mixed Fetching function result
      */
-    private function executeFetcher($fetcher)
+    private function executeFetcher($fetcher, $sql)
     {
         $result = array();
 
@@ -154,6 +142,8 @@ class Database
         } catch (\PDOException $e) {
             $this->outputError($e, $sql);
         }
+
+        return null;
     }
 
     /**
@@ -162,7 +152,7 @@ class Database
      * method will return empty array of stdClass all arrays regarding to $className is
      * passed or not.
      *
-     * @param string $sql Query text
+     * @param string $sql SQL statement
      * @return array Collection of arrays or objects
      */
     private function innerFetch($sql, $className = null)
@@ -177,32 +167,28 @@ class Database
         } catch (\PDOException $e) {
             $this->outputError($e, $sql, 'Fetching database records:');
         }
+
+        return array();
     }
 
     /**
      * Special accelerated function to retrieve db record fields instead of objects
      *
-     * @param string $className
-     * @param mixed $query
-     * @param string $field
+     * @param string $sql SQL statement
+     * @param int $columnIndex Needed column index
      *
-     * @return array
+     * @return array Database records column value collection
      */
-    private function innerFetchColumn($className, $query, $field)
+    private function innerFetchColumn($sql, $columnIndex)
     {
-        // Get SQL
-        $sql = $this->prepareSQL($className, $query);
-
-        // TODO: Remove old attributes retrieval
-        // Get table column index by its name
-        $columnIndex = array_search($field, array_values($className::$_table_attributes));
-
         try {
             // Perform database query
             return $this->driver->query($sql)->fetchAll(\PDO::FETCH_COLUMN, $columnIndex);
         } catch (\PDOException $e) {
             $this->outputError($e, $sql, 'Error fetching records column values:');
         }
+
+        return array();
     }
 
     /**
@@ -221,7 +207,7 @@ class Database
      * method will return empty array of stdClass all arrays regarding to $className is
      * passed or not.
      *
-     * @param string $sql Query text
+     * @param string $sql SQL statement
      * @return array Collection of arrays or objects
      */
     public function fetch($sql)
@@ -231,6 +217,9 @@ class Database
 
     /**
      * Special accelerated function to retrieve db record fields instead of objects
+     * TODO: Change to be independent of query and class name, just SQL, this SQL
+     * should only have one column in SELECT part and then we do not need parameter
+     * for this as we can always take 0.
      *
      * @param string $className
      * @param mixed $query
@@ -240,7 +229,14 @@ class Database
      */
     public function fetchColumn($className, $query, $field)
     {
-        return $this->executeFetcher(array($this, 'innerFetchColumn'), $className, $query, $field);
+        // Get SQL
+        $sql = $this->prepareSQL($className, $query);
+
+        // TODO: Remove old attributes retrieval
+        // Get table column index by its name
+        $columnIndex = array_search($field, array_values($className::$_table_attributes));
+
+        return $this->executeFetcher(array($this, 'innerFetchColumn'), $sql, $columnIndex);
     }
 
     /**
