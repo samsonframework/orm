@@ -209,13 +209,12 @@ class Query extends QueryHandler implements QueryInterface
     {
         // If empty array is passed
         if (is_string($fieldName)) {
-            // TODO: We consider empty array passed as condition value as NULL
             // Handle empty field value passing to avoid unexpected behaviour
             if (!isset($fieldValue)) {
                 $relation = ArgumentInterface::ISNULL;
                 $fieldValue = '';
             } elseif (is_array($fieldValue) && !sizeof($fieldValue)) {
-                // Consider this is illegal condition
+                // TODO: We consider empty array passed as condition value as NULL, illegal condition
                 $relation = ArgumentInterface::EQUAL;
                 $fieldName = '1';
                 $fieldValue = '0';
