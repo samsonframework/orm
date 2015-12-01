@@ -11,7 +11,7 @@ namespace samsonframework\orm;
  * Database entity manager.
  * @package samsonframework\orm
  */
-class Manager extends Database implements ManagerInterface
+class Manager
 {
     /** @var string Entity identifier */
     protected $entityName;
@@ -21,9 +21,6 @@ class Manager extends Database implements ManagerInterface
 
     /** @var array Collection of entity field names and their types */
     protected $attributes = array();
-
-    /** @var \PDO Database driver */
-    protected $driver;
 
     /**
      * Manager constructor.
@@ -39,41 +36,6 @@ class Manager extends Database implements ManagerInterface
         $this->driver = $driver;
     }
 
-    public function execute($sql)
-    {
-        $result = array();
-
-        if (isset($this->driver)) {
-            // Store timestamp
-            $tsLast = microtime(true);
-
-            try {
-                // Perform database query
-                $result = $this->driver->prepare($sql)->execute();
-            } catch (\PDOException $e) {
-                echo("\n" . $sql . '-' . $e->getMessage());
-            }
-
-            // Store queries count
-            $this->count++;
-
-            // Count elapsed time
-            $this->elapsed += microtime(true) - $tsLast;
-        }
-
-        return $result;
-    }
-
-    /**
-     * Get query for database entity to work with.
-     *
-     * @return QueryInterface Query for building database request
-     */
-    public function query()
-    {
-        return new Query($this->entityName, $this);
-    }
-
     /**
      * Get new entity instance.
      *
@@ -82,6 +44,28 @@ class Manager extends Database implements ManagerInterface
     public function instance()
     {
         return new $this->entityName($this);
+    }
+
+    /**
+     * Convert RecordInterface instance to collection of its field name => value.
+     *
+     * @param RecordInterface $object Database record instance to convert
+     * @return array Collection of key => value with SQL fields statements
+     */
+    protected function &getFields(RecordInterface &$object = null)
+    {
+        $collection = array();
+        foreach ($this->attributes as $attribute => $type) {
+            if ($type == 'timestamp') {
+                continue;
+            } elseif ($this->primaryFieldName == $attribute) {
+                continue;
+            }
+
+            $collection[$attribute] = $this->quote($object->$attribute);
+        }
+
+        return $collection;
     }
 
     /**
@@ -138,38 +122,5 @@ class Manager extends Database implements ManagerInterface
         $this->execute('DELETE FROM `' . $this->entityName . '` WHERE '
             . $this->primaryFieldName . ' = "' . $this->quote($entity->id) . '"'
         );
-    }
-
-    /**
-     * Convert RecordInterface instance to collection of its field name => value.
-     *
-     * @param RecordInterface $object Database record instance to convert
-     * @return array Collection of key => value with SQL fields statements
-     */
-    protected function &getFields(RecordInterface &$object = null)
-    {
-        $collection = array();
-        foreach ($this->attributes as $attribute => $type) {
-            if ($type == 'timestamp') {
-                continue;
-            } elseif ($this->primaryFieldName == $attribute) {
-                continue;
-            }
-
-            $collection[$attribute] = $this->quote($object->$attribute);
-        }
-
-        return $collection;
-    }
-
-    /**
-     * Quote variable for security reasons.
-     *
-     * @param string $value
-     * @return string Quoted value
-     */
-    protected function quote($value)
-    {
-        return $this->driver->quote($value);
     }
 }

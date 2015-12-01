@@ -6,6 +6,7 @@
  * Time: 13:05
  */
 namespace samsonframework\orm;
+
 use samsonframework\orm\exception\EntityNotFound;
 
 /**
@@ -70,26 +71,38 @@ class Database
     }
 
     /**
-     * Get entity query manager
-     * @param string $entity Entity identifier
-     * @return Query Query manager instance
+     * High-level database query executor
+     * @param string $sql SQL statement
+     * @return mixed Database query result
+     * @deprecated Use execute()
      */
-    public function manager($entity)
+    public function query($sql)
     {
-        return new Query($entity, $this);
+        return $this->execute($sql);
+    }
+
+    /** Count query result */
+    public function count($className, $query)
+    {
+        // Get SQL
+        $sql = 'SELECT Count(*) as __Count FROM (' . $this->prepareSQL($className, $query) . ') as __table';
+
+        // Выполним запрос к БД
+        $result = $this->fetch($sql);
+
+        return $result[0]['__Count'];
     }
 
     /**
      * Intreal error beautifier
-     * @param \Exception $e
+     * @param \Exception $exception
      * @param $sql
      */
-    private function outputError(\Exception $e, $sql, $text = 'Error executing database query:')
+    private function outputError(\Exception $exception, $sql, $text = 'Error executing database query:')
     {
-        elapsed('erorr');
         echo("\n" . '<div style="font-size:12px; position:relative; background:red; z-index:9999999;">'
-        .'<div style="padding:4px 10px;">'.$text.'</div>'
-            .'<div style="padding:0px 10px;">['.htmlspecialchars($e->getMessage()).']</div>'
+            .'<div style="padding:4px 10px;">'.$text.'</div>'
+            .'<div style="padding:0px 10px;">['.htmlspecialchars($exception->getMessage()).']</div>'
             .'<textarea style="display:block; width:100%; min-height:100px;">'.$sql . '</textarea></div>');
     }
 
@@ -99,7 +112,7 @@ class Database
      * @param callback $fetcher Callback for fetching
      * @return mixed Fetching function result
      */
-    private function execute($fetcher)
+    private function executeFetcher($fetcher)
     {
         $result = array();
 
@@ -114,8 +127,8 @@ class Database
 
                 // Proxy calling of fetcher function with passing parameters
                 $result = call_user_func_array($fetcher, $args);
-            } catch (\PDOException $e) {
-                $this->outputError($e, $sql, 'Error executing ['.$fetcher.']');
+            } catch (\PDOException $exception) {
+                $this->outputError($exception, $sql, 'Error executing ['.$fetcher.']');
             }
 
             // Store queries count
@@ -137,7 +150,7 @@ class Database
     {
         try {
             // Perform database query
-            $result = $this->driver->prepare($sql)->execute();
+            return $this->driver->prepare($sql)->execute();
         } catch (\PDOException $e) {
             $this->outputError($e, $sql);
         }
@@ -197,9 +210,9 @@ class Database
      * @param string $sql SQL statement
      * @return mixed Database query result
      */
-    public function query($sql)
+    public function execute($sql)
     {
-        return $this->execute(array($this, 'innerQuery'), $sql);
+        return $this->executeFetcher(array($this, 'innerQuery'), $sql);
     }
 
     /**
@@ -213,7 +226,7 @@ class Database
      */
     public function fetch($sql)
     {
-        return $this->execute(array($this, 'innerFetch'), $sql);
+        return $this->executeFetcher(array($this, 'innerFetch'), $sql);
     }
 
     /**
@@ -227,111 +240,17 @@ class Database
      */
     public function fetchColumn($className, $query, $field)
     {
-        return $this->execute(array($this, 'innerFetchColumn'), $className, $query, $field);
-    }
-
-    public function create($className, &$object = null)
-    {
-        // ??
-        $fields = $this->getQueryFields($className, $object);
-
-        $this->query('INSERT INTO `' . $className::$_table_name . '` (`'
-            . implode('`,`', array_keys($fields)) . '`)
-            VALUES (' . implode(',', $fields) . ')'
-        );
-
-        // Return last inserted row identifier
-        return $this->driver->lastInsertId();
-    }
-
-    public function update($className, &$object)
-    {
-        $this->query('UPDATE `' . $className::$_table_name . '` SET '
-            . implode(',', $this->getQueryFields($className, $object, true))
-            . ' WHERE ' . $className::$_table_name . '.' . $className::$_primary . '="'
-            . $object->id . '"');
-    }
-
-    public function delete($className, &$object)
-    {
-        $this->query('DELETE FROM `' . $className::$_table_name . '` WHERE '
-            . $className::$_primary . ' = "' . $object->id . '"'
-        );
-    }
-
-    /** Count query result */
-    public function count($className, $query)
-    {
-        // Get SQL
-        $sql = 'SELECT Count(*) as __Count FROM (' . $this->prepareSQL($className, $query) . ') as __table';
-
-        // Выполним запрос к БД
-        $result = $this->fetch($sql);
-
-        return $result[0]['__Count'];
+        return $this->executeFetcher(array($this, 'innerFetchColumn'), $className, $query, $field);
     }
 
     /**
-     * Выполнить защиту значения поля для его безопасного использования в запросах
+     * Quote variable for security reasons.
      *
-     * @param string $value Значения поля для запроса
-     * @return string $value Безопасное представление значения поля для запроса
+     * @param string $value
+     * @return string Quoted value
      */
-    protected function protectQueryValue($value)
+    protected function quote($value)
     {
-        // If magic quotes are on - remove slashes
-        if (get_magic_quotes_gpc()) {
-            $value = stripslashes($value);
-        }
-
-        // Normally escape string
-        $value = $this->driver->quote($value);
-
-        // Return value in quotes
-        return $value;
-    }
-
-    /**
-     * Prepare create & update SQL statements fields
-     * @param string $className Entity name
-     * @param Record $object Database object to get values(if needed)
-     * @param bool $straight Way of forming SQL field statements
-     * @return array Collection of key => value with SQL fields statements
-     */
-    protected function &getQueryFields($className, & $object = null, $straight = false)
-    {
-        // Результирующая коллекция
-        $collection = array();
-
-        // Установим флаг получения значений атрибутов из переданного объекта
-        $use_values = isset($object);
-
-        // Переберем "настоящее" имена атрибутов схемы данных для объекта
-        foreach ($className::$_table_attributes as $attribute => $map_attribute) {
-            // Отметки времени не заполняем
-            if ($className::$_types[$attribute] == 'timestamp') {
-                continue;
-            }
-
-            // Основной ключ не заполняем
-            if ($className::$_primary == $attribute) {
-                continue;
-            }
-
-            // Получим значение атрибута объекта защитив от инъекций, если объект передан
-            $value = $use_values ? $this->driver->quote($object->$map_attribute) : '';
-
-            // Добавим значение поля, в зависимости от вида вывывода метода
-            $collection[$map_attribute] = ($straight ? $className::$_table_name . '.' . $map_attribute . '=' : '') . $value;
-        }
-
-        // Вернем полученную коллекцию
-        return $collection;
-    }
-
-    /** @deprecated Use query() */
-    public function &simple_query($sql)
-    {
-        return $this->query($sql);
+        return $this->driver->quote($value);
     }
 }
