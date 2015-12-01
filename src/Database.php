@@ -70,21 +70,6 @@ class Database
     }
 
     /**
-     * Create new database record
-     * @param string $entity Entity class name
-     * @return null|RecordInterface Entity instance
-     * @throws EntityNotFound
-     */
-    public function entity($entity)
-    {
-        if (class_exists($entity)) {
-            return new $entity($this);
-        } else {
-            throw new EntityNotFound('['.$entity.'] not found');
-        }
-    }
-
-    /**
      * Get entity query manager
      * @param string $entity Entity identifier
      * @return Query Query manager instance

@@ -1,9 +1,10 @@
 <?php
 namespace samsonframework\orm;
+
 use samsonframework\orm\exception\EntityNotFound;
 
 /**
- * Database query builder and executer.
+ * Database query builder.
  * @author Vitaly Iegorov <egorov@samsonos.com>
  * @version 2.0
  */
