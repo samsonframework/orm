@@ -95,11 +95,26 @@ class Database
     }
 
     /**
-     * High-level database query executor
-     * @param string $sql SQL statement
-     * @return mixed Database query result
+     * Intreal error beautifier
+     * @param \Exception $e
+     * @param $sql
      */
-    public function &query($sql)
+    private function outputError(\Exception $e, $sql, $text = 'Error executing database query:')
+    {
+        elapsed('erorr');
+        echo("\n" . '<div style="font-size:12px; position:relative; background:red; z-index:9999999;">'
+        .'<div style="padding:4px 10px;">'.$text.'</div>'
+            .'<div style="padding:0px 10px;">['.htmlspecialchars($e->getMessage()).']</div>'
+            .'<textarea style="display:block; width:100%; min-height:100px;">'.$sql . '</textarea></div>');
+    }
+
+    /**
+     * Proxy function for executing database fetching logic with exception,
+     * error, profile handling
+     * @param callback $fetcher Callback for fetching
+     * @return mixed Fetching function result
+     */
+    private function execute($fetcher)
     {
         $result = array();
 
@@ -107,11 +122,15 @@ class Database
             // Store timestamp
             $tsLast = microtime(true);
 
-            try {
-                // Perform database query
-                $result = $this->driver->prepare($sql)->execute();
+            try { // Call fetcher
+                // Get argument and remove first one
+                $args = func_get_args();
+                array_shift($args);
+
+                // Proxy calling of fetcher function with passing parameters
+                $result = call_user_func_array($fetcher, $args);
             } catch (\PDOException $e) {
-                echo("\n" . $sql . '-' . $e->getMessage());
+                $this->outputError($e, $sql, 'Error executing ['.$fetcher.']');
             }
 
             // Store queries count
@@ -125,43 +144,41 @@ class Database
     }
 
     /**
+     * High-level database query executor
+     * @param string $sql SQL statement
+     * @return mixed Database query result
+     */
+    private function innerQuery($sql)
+    {
+        try {
+            // Perform database query
+            $result = $this->driver->prepare($sql)->execute();
+        } catch (\PDOException $e) {
+            $this->outputError($e, $sql);
+        }
+    }
+
+    /**
      * Retrieve array of records from a database, if $className is passed method
      * will try to create an object of that type. If request has failed than
      * method will return empty array of stdClass all arrays regarding to $className is
      * passed or not.
      *
      * @param string $sql Query text
-     * @param string $className Class name if we want to create object
      * @return array Collection of arrays or objects
      */
-    public function &fetch($sql, $className = null)
+    private function innerFetch($sql, $className = null)
     {
-        // Return value
-        $result = array();
-
-        if (isset($this->driver)) {
-            // Store timestamp
-            $tsLast = microtime(true);
-
-            try {
-                // Perform database query
-                if (!isset($className)) { // Return array
-                    $result = $this->driver->query($sql)->fetchAll(\PDO::FETCH_ASSOC);
-                } else { // Create object of passed class name
-                    $result = $this->driver->query($sql)->fetchAll(\PDO::FETCH_CLASS, $className, array(&$this));
-                }
-            } catch (\PDOException $e) {
-                echo("\n" . $sql . '-' . $e->getMessage());
+        try {
+            // Perform database query
+            if (!isset($className)) { // Return array
+                return $this->driver->query($sql)->fetchAll(\PDO::FETCH_ASSOC);
+            } else { // Create object of passed class name
+                return $this->driver->query($sql)->fetchAll(\PDO::FETCH_CLASS, $className, array(&$this));
             }
-
-            // Store queries count
-            $this->count++;
-
-            // Count elapsed time
-            $this->elapsed += microtime(true) - $tsLast;
+        } catch (\PDOException $e) {
+            $this->outputError($e, $sql, 'Fetching database records:');
         }
-
-        return $result;
     }
 
     /**
@@ -173,76 +190,59 @@ class Database
      *
      * @return array
      */
-    public function &fetchColumn($className, $query, $field)
+    private function innerFetchColumn($className, $query, $field)
     {
-        $result = array();
+        // Get SQL
+        $sql = $this->prepareSQL($className, $query);
 
-        if (isset($this->driver)) {
-            // Store timestamp
-            $tsLast = microtime(true);
+        // TODO: Remove old attributes retrieval
+        // Get table column index by its name
+        $columnIndex = array_search($field, array_values($className::$_table_attributes));
 
-            // Get SQL
-            $sql = $this->prepareSQL($className, $query);
-
-            // Get table column index by its name
-            $columnIndex = array_search($field, array_values($className::$_table_attributes));
-
-            try {
-                // Perform database query
-                $result = $this->driver->query($sql)->fetchAll(\PDO::FETCH_COLUMN, $columnIndex);
-            } catch (\PDOException $e) {
-                echo("\n" . $sql . '-' . $e->getMessage());
-            }
-
-            // Store queries count
-            $this->count++;
-
-            // Count elapsed time
-            $this->elapsed += microtime(true) - $tsLast;
+        try {
+            // Perform database query
+            return $this->driver->query($sql)->fetchAll(\PDO::FETCH_COLUMN, $columnIndex);
+        } catch (\PDOException $e) {
+            $this->outputError($e, $sql, 'Error fetching records column values:');
         }
-
-        return $result;
     }
 
     /**
-     * Retrieve one record from a database, if $className is passed method
+     * High-level database query executor
+     * @param string $sql SQL statement
+     * @return mixed Database query result
+     */
+    public function query($sql)
+    {
+        return $this->execute(array($this, 'innerQuery'), $sql);
+    }
+
+    /**
+     * Retrieve array of records from a database, if $className is passed method
      * will try to create an object of that type. If request has failed than
-     * method will return empty array or stdClass regarding to $className is
+     * method will return empty array of stdClass all arrays regarding to $className is
      * passed or not.
      *
      * @param string $sql Query text
-     * @param string $className Class name if we want to create object
-     * @return array|object Record as array or object
+     * @return array Collection of arrays or objects
      */
-    public function &fetchOne($sql, $className = null)
+    public function fetch($sql)
     {
-        // Return value, configure to return correct type
-        $result = isset($className) ? new \stdClass() : array();
+        return $this->execute(array($this, 'innerFetch'), $sql);
+    }
 
-        if (isset($this->driver)) {
-            // Store timestamp
-            $tsLast = microtime(true);
-
-            try {
-                // Perform database query
-                if (!isset($className)) { // Return array
-                    $result = $this->driver->query($sql)->fetch(\PDO::FETCH_ASSOC);
-                } else { // Create object of passed class name
-                    $result = $this->driver->query($sql)->fetchObject($className, array(&$this));
-                }
-
-            } catch (\PDOException $e) {
-                echo("\n" . $sql . '-' . $e->getMessage());
-            }
-
-            // Store queries count
-            $this->count++;
-
-            // Count elapsed time
-            $this->elapsed += microtime(true) - $tsLast;
-        }
-
-        return $result;
+    /**
+     * Special accelerated function to retrieve db record fields instead of objects
+     *
+     * @param string $className
+     * @param mixed $query
+     * @param string $field
+     *
+     * @return array
+     */
+    public function fetchColumn($className, $query, $field)
+    {
+        return $this->execute(array($this, 'innerFetchColumn'), $className, $query, $field);
     }
 
     public function create($className, &$object = null)

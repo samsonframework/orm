@@ -60,12 +60,14 @@ class Query extends QueryHandler implements QueryInterface
     }
 
     /**
-     * Perform database request and get collection of database record objects.
+     * Proxy function for performing database request and get collection of database record objects.
+     * This method encapsulates all logic needed for query to be done before and after actual database
+     * manager request.
      *
      * @param string $fetcher Database manager fetching method
-     * @return mixed If no arguments passed returns query results collection, otherwise query success status
+     * @return mixed Return fetching function result
      */
-    public function execute($fetcher = 'find')
+    protected function execute($fetcher = 'find')
     {
         // Call handlers stack
         $this->callHandlers();
@@ -133,7 +135,7 @@ class Query extends QueryHandler implements QueryInterface
         $return = $this->execute('fetchColumn', $this->class_name, $this, $fieldName);
 
         // Return bool or collection
-        return func_num_args() ? sizeof($return) : $return;
+        return func_num_args() > 1 ? sizeof($return) : $return;
     }
 
     /**
@@ -207,10 +209,16 @@ class Query extends QueryHandler implements QueryInterface
     {
         // If empty array is passed
         if (is_string($fieldName)) {
+            // TODO: We consider empty array passed as condition value as NULL
             // Handle empty field value passing to avoid unexpected behaviour
             if (!isset($fieldValue)) {
                 $relation = ArgumentInterface::ISNULL;
                 $fieldValue = '';
+            } elseif (is_array($fieldValue) && !sizeof($fieldValue)) {
+                // Consider this is illegal condition
+                $relation = ArgumentInterface::EQUAL;
+                $fieldName = '1';
+                $fieldValue = '0';
             }
 
             // Add condition argument
