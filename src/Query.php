@@ -31,6 +31,11 @@ class Query extends QueryHandler implements QueryInterface
     /** @var Database Database instance */
     protected $database;
 
+    public function __sleep()
+    {
+        return array();
+    }
+
     /**
      * Query constructor.
      * @param string|null $entity Entity identifier

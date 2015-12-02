@@ -40,7 +40,9 @@ class ManagerGenerator
     public function __construct(Database $database)
     {
         $this->database = $database;
-        $this->metadata();
+        foreach ($this->metadata() as $entity => $entityMetadata) {
+            trace($this->createManager($entity, $entityMetadata), 1);
+        }
     }
 
     /**
@@ -63,5 +65,33 @@ class ManagerGenerator
         }
 
         return $metadata;
+    }
+
+    public function createManager($entity, array $entityMetadata)
+    {
+        /** @var string $code Manager class code */
+        $code = '';
+        if (sizeof($entityMetadata)) {
+            $code .= 'namespace '.__NAMESPACE__.';'."\n";
+            $code .= "\n".'class '.ucfirst($entity).'Manager extends Manager';
+            $code .= "\n"."{"; // Open class
+            $code .= "\n"."\t".'public $entityName = "'.$entity.'";';
+            $code .= "\n"."\t".$this->createAttributesCollection($entityMetadata);
+            $code .= "\n"."}"."\n"; // Close class
+        }
+
+        return $code;
+    }
+
+    protected function createAttributesCollection(array $entityMetadata, $variableName = 'queryFields')
+    {
+        $code = 'public $'.$variableName.' = array(';
+        foreach ($entityMetadata as $field => $fieldMetadata) {
+            // Ignore entity fields that are filled automatically by database
+            if ($fieldMetadata['TYPE'] !== 'timestamp' && $fieldMetadata['Key'] != 'PRI') {
+                $code .= "\n" . "\t" . "\t" . '"' . $field . '" => "' . $fieldMetadata['Type'] . '",';
+            }
+        }
+        return $code . "\n"."\t".');';
     }
 }

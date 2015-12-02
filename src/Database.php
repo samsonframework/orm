@@ -81,8 +81,6 @@ class Database
         return $this->execute($sql);
     }
 
-
-
     /**
      * Intreal error beautifier
      * @param \Exception $exception
