@@ -68,7 +68,7 @@ class Query extends QueryHandler implements QueryInterface
      * @param string $fetcher Database manager fetching method
      * @return mixed Return fetching function result
      */
-    protected function execute($fetcher = 'find')
+    protected function innerExecute($fetcher = 'find')
     {
         // Call handlers stack
         $this->callHandlers();
@@ -96,7 +96,7 @@ class Query extends QueryHandler implements QueryInterface
     public function exec(&$return = null)
     {
         /** @var RecordInterface[] $return Perform DB request */
-        $return = $this->execute('find', $this->class_name, $this);
+        $return = $this->innerExecute('find', $this->class_name, $this);
 
         // Return bool or collection
         return func_num_args() ? sizeof($return) : $return;
@@ -115,7 +115,7 @@ class Query extends QueryHandler implements QueryInterface
         $this->limit(1);
 
         /** @var RecordInterface[] $return Perform DB request */
-        $return = $this->execute('find', $this->class_name, $this);
+        $return = $this->innerExecute('find', $this->class_name, $this);
         $return = sizeof($return) ? array_shift($return) : null;
 
         // Return bool or collection
@@ -133,7 +133,7 @@ class Query extends QueryHandler implements QueryInterface
     public function fields($fieldName, &$return = null)
     {
         /** @var RecordInterface[] $return Perform DB request */
-        $return = $this->execute('fetchColumn', $this->class_name, $this, $fieldName);
+        $return = $this->innerExecute('fetchColumn', $this->class_name, $this, $fieldName);
 
         // Return bool or collection
         return func_num_args() > 1 ? sizeof($return) : $return;
@@ -157,6 +157,8 @@ class Query extends QueryHandler implements QueryInterface
 
         return $this;
     }
+
+
 
     /**
      * Get correct query condition depending on entity field name.
@@ -287,5 +289,24 @@ class Query extends QueryHandler implements QueryInterface
 
         // Chaining
         return $this;
+    }
+
+    /**
+     * Perform database query with specific SQL statement.
+     *
+     * @param string $statement SQL statement for execution
+     * @param null|RecordInterface[] $return If variable is passed resulting collection would be
+     *                                      stored in this variable.
+     * @return bool|RecordInterface If method is called with $return parameter then then bool
+     *                                  with query result status would be returned, otherwise
+     *                                  query result collection would be returned.
+     */
+    public function sql($statement, &$return = null)
+    {
+        /** @var RecordInterface[] $return Perform DB request */
+        $return = $this->innerExecute('execute', $statement);
+
+        // Return bool or collection
+        return func_num_args() ? sizeof($return) : $return;
     }
 }
