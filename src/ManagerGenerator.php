@@ -29,7 +29,7 @@ class ManagerGenerator
       FROM `information_schema`.`TABLES` as `TABLES`
       LEFT JOIN `information_schema`.`COLUMNS` as `COLUMNS`
       ON `TABLES`.`TABLE_NAME`=`COLUMNS`.`TABLE_NAME`
-      WHERE `TABLES`.`TABLE_SCHEMA`="\' . $this->database . \'" AND `COLUMNS`.`TABLE_SCHEMA`="\' . $this->database . \'"\
+      WHERE `TABLES`.`TABLE_SCHEMA`="@database" AND `COLUMNS`.`TABLE_SCHEMA`="@database"
       ';
 
     /**
@@ -39,15 +39,25 @@ class ManagerGenerator
      */
     public function __construct(Database $database)
     {
-        $this->$database = $database;
+        $this->database = $database;
+        $this->metadata();
     }
 
     protected function metadata()
     {
-        // Получим информацию о всех таблицах из БД
-        foreach ($this->database->execute($this->metadataSQL) as $tableMetadata) {
-            trace($tableMetadata, 1);
+        // Insert parameter
+        $this->metadataSQL = str_replace('@database', $this->database->database(), $this->metadataSQL);
+
+
+        /** @var array Collection of database tables and their fields description  */
+        $metadata = array();
+        // Iterate database metadata
+        foreach ($this->database->fetch($this->metadataSQL) as $tableMetadata) {
+            // Gather database in format entity => field => [field_params]
+            $metadata[$tableMetadata['TABLE_NAME']][$tableMetadata['Field']] = array_slice($tableMetadata, 2);
         }
+
+        trace($metadata, 1);
 
 //        foreach ($rows as $row) {
 //            // Получим имя таблицы
