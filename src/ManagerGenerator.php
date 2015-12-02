@@ -13,8 +13,8 @@ namespace samsonframework\orm;
  */
 class ManagerGenerator
 {
-    /** @var QueryInterface Database query manager */
-    protected $query;
+    /** @var Database Database manager */
+    protected $database;
 
     /** @var string SQL statement for retrieving database tables metadata */
     protected $metadataSQL = '
@@ -35,17 +35,17 @@ class ManagerGenerator
     /**
      * ManagerGenerator constructor.
      *
-     * @param QueryInterface $query Database query manager
+     * @param Database $database Database query manager
      */
-    public function __construct(QueryInterface $query)
+    public function __construct(Database $database)
     {
-        $this->query = $query;
+        $this->$database = $database;
     }
 
     protected function metadata()
     {
         // Получим информацию о всех таблицах из БД
-        foreach ($this->query->sql($this->metadataSQL) as $tableMetadata) {
+        foreach ($this->database->execute($this->metadataSQL) as $tableMetadata) {
             trace($tableMetadata, 1);
         }
 

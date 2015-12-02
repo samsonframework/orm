@@ -158,8 +158,6 @@ class Query extends QueryHandler implements QueryInterface
         return $this;
     }
 
-
-
     /**
      * Get correct query condition depending on entity field name.
      * If base entity has field with this name - use base entity condition
