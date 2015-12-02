@@ -140,25 +140,6 @@ class Query extends QueryHandler implements QueryInterface
     }
 
     /**
-     * Perform database query with specific SQL statement.
-     *
-     * @param string $statement SQL statement for execution
-     * @param null|RecordInterface[] $return If variable is passed resulting collection would be
-     *                                      stored in this variable.
-     * @return bool|RecordInterface If method is called with $return parameter then then bool
-     *                                  with query result status would be returned, otherwise
-     *                                  query result collection would be returned.
-     */
-    public function sql($statement, &$return = null)
-    {
-        /** @var RecordInterface[] $return Perform DB request */
-        $return = $this->innerExecute('execute', $statement);
-
-        // Return bool or collection
-        return func_num_args() ? sizeof($return) : $return;
-    }
-
-    /**
      * Set query entity to work with.
      *
      * @param string $entity Entity identifier

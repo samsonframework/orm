@@ -56,6 +56,8 @@ class Database
             $this->query("set character_set_client='utf8'");
             $this->query("set character_set_results='utf8'");
             $this->query("set collation_connection='utf8_general_ci'");
+
+            new ManagerGenerator($this);
         }
     }
 
