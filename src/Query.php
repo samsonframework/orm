@@ -189,16 +189,19 @@ class Query extends QueryHandler implements QueryInterface
      */
     public function whereCondition(ConditionInterface $condition)
     {
-        // Iterate condition arguments
-        foreach ($condition as $argument) {
-            // If passed condition group has another condition group as argument
-            if (is_a($argument, __NAMESPACE__ . '\Condition')) {
-                // Go deeper in recursion
-                $this->whereCondition($argument);
-            } else { // Otherwise add condition argument to correct condition group
-                $this->conditionGroup($argument->field)->addArgument($argument);
-            }
-        }
+        // TODO: We cannot define to which group this condition is related
+        $this->own_condition->addCondition($condition);
+
+//        // Iterate condition arguments
+//        foreach ($condition as $argument) {
+//            // If passed condition group has another condition group as argument
+//            if (is_a($argument, __NAMESPACE__ . '\Condition')) {
+//                // Go deeper in recursion
+//                $this->whereCondition($argument);
+//            } else { // Otherwise add condition argument to correct condition group
+//                $this->conditionGroup($argument->field)->addArgument($argument);
+//            }
+//        }
 
         return $this;
     }
