@@ -2,65 +2,131 @@
 namespace samsonframework\orm;
 
 /**
- * Universal class for storing query condition groups and arguments
+ * Query condition arguments group
  * @author Vitaly Iegorov <egorov@samsonos.com>
  * @version 2.0
  */
-class Condition
+class Condition implements ConditionInterface
 {
-    /** AND(conjunction) - Condition relation type */
-    const REL_AND = 'AND';
+    /** @var string Relation logic between arguments */
+    public $relation = ConditionInterface::CONJUNCTION;
 
-    /** OR(disjunction) - Condition relation type */
-    const REL_OR = 'OR';
+    /** @var Argument[] Collection of condition arguments */
+    protected $arguments = array();
 
     /**
-     * Arguments collection
-     * @see \samson\activerecord\Argument
+     * Add condition argument to this condition group
+     * @param ArgumentInterface $argument Condition argument to be added
+     * @return self Chaining
      */
-    public $arguments = array();
+    public function addArgument(ArgumentInterface $argument)
+    {
+        // Add condition as current condition argument
+        $this->arguments[] = $argument;
 
-    /** Arguments relation */
-    public $relation = self::REL_AND;
+        return $this;
+    }
+
+    /**
+     * Add condition group to this condition group
+     * @param ConditionInterface $condition Condition group to be added
+     * @return self Chaining
+     */
+    public function addCondition(ConditionInterface $condition)
+    {
+        // Add condition as current condition argument
+        $this->arguments[] = $condition;
+
+        return $this;
+    }
+
+    /**
+     * @return int Amount of condition group arguments
+     */
+    public function size()
+    {
+        return sizeof($this->arguments);
+    }
 
     /**
      * Generic condition addiction function
-     * @param \samson\activerecord\Condition|\samson\activerecord\Argument|string $argument Entity for adding to arguments collection
-     * @param string $value Argument value
+     * @param string $argument Entity for adding to arguments collection
+     * @param mixed $value Argument value
      * @param string $relation Relation between argument and value
-     * @return $this Chaining
+     * @return self Chaining
      */
-    public function add($argument, $value = '', $relation = Relation::EQUAL)
+    public function add($argument, $value, $relation = ArgumentInterface::EQUAL)
     {
-        // If query Condition object is passed
-        if (is_a($argument, ns_classname('Condition', 'samson\activerecord'))) {
-            // Add condition as current condition argument
-            $this->arguments[] = $argument;
-        } // If query Argument object is passed
-        else {
-            if (is_a($argument, ns_classname('Argument', 'samson\activerecord'))) {
-                // Add argument to arguments collection
-                $this->arguments[] = $argument;
-            } // If string - consider it as argument field name
-            else {
-                if (is_string($argument)) {
-                    // Add new argument to arguments collection
-                    $this->arguments[] = new Argument($argument, $value, $relation);
-                }
-            }
+        if (is_string($argument)) {
+            // Add new argument to arguments collection
+            $this->arguments[] = new Argument($argument, $value, $relation);
         }
 
         return $this;
     }
 
     /**
-     * Construcor
-     * @param string $relation Relation type beetween arguments
+     * Constructor
+     * @param string $relation Relation type between arguments
      */
     public function __construct($relation = null)
     {
-        if (isset($relation)) {
-            $this->relation = $relation;
-        }
+        $this->relation = isset($relation) ? $relation : ConditionInterface::CONJUNCTION;
+    }
+
+    /**
+     * Return the current element
+     * @link http://php.net/manual/en/iterator.current.php
+     * @return mixed Can return any type.
+     * @since 5.0.0
+     */
+    public function current()
+    {
+        return current($this->arguments);
+    }
+
+    /**
+     * Move forward to next element
+     * @link http://php.net/manual/en/iterator.next.php
+     * @return void Any returned value is ignored.
+     * @since 5.0.0
+     */
+    public function next()
+    {
+        next($this->arguments);
+    }
+
+    /**
+     * Return the key of the current element
+     * @link http://php.net/manual/en/iterator.key.php
+     * @return mixed scalar on success, or null on failure.
+     * @since 5.0.0
+     */
+    public function key()
+    {
+        return key($this->arguments);
+    }
+
+    /**
+     * Checks if current position is valid
+     * @link http://php.net/manual/en/iterator.valid.php
+     * @return boolean The return value will be casted to boolean and then evaluated.
+     * Returns true on success or false on failure.
+     * @since 5.0.0
+     */
+    public function valid()
+    {
+        return key($this->arguments) !== null;
+    }
+
+    /**
+     * Rewind the Iterator to the first element
+     * @link http://php.net/manual/en/iterator.rewind.php
+     * @return void Any returned value is ignored.
+     * @since 5.0.0
+     */
+    public function rewind()
+    {
+        reset($this->arguments);
     }
 }

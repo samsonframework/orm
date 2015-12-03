@@ -8,13 +8,55 @@ use samson\core\iModuleViewable;
  * @author Vitaly Iegorov <egorov@samsonos.com>
  * @author Nikita Kotenko <kotenko@samsonos.com>
  */
-class Record implements \samson\core\iModuleViewable, \ArrayAccess
+class Record implements iModuleViewable, \ArrayAccess
 {
     /** @var array Collection of instances for caching */
     public static $instances = array();
 
     /** Collection of class fields that would not be passed to module view */
     public static $restricted = array('attached', 'oneToOne', 'oneToMany', 'className');
+    
+    /** @var string Primary key column name */
+    public static $_primary;
+
+    /** @var string Entity identifier */
+    public static $_table_name = "structure";
+
+    /** @var array Base entity grouping filed names */
+    public static $_own_group = array();
+
+    /** @var array Collection of entity field names */
+    public static $_attributes = array();
+
+    /** @var array Collection of entity real field names as values and other as keys */
+    public static $_table_attributes = array();
+
+    /** @var array Collection of FROM SQL parts for entity and possible joins */
+    public static $_sql_from = array();
+
+    /** @var array Collection of entity predefined possible join entities */
+    public static $_relations = array();
+
+    /** @var array Collection of possible joined entities field names to aliases */
+    public static $_relation_alias = array();
+
+    /** @var array Collection of possible joined entities relation types */
+    public static $_relation_type = array();
+
+    /** @var array Collection of SELECT SQL parts for entity and possible joins */
+    public static $_sql_select = array();
+
+    /** @var array Collection of entity field types */
+    public static $_types = array();
+
+    /** @var array Collection of entity indexed fields */
+    public static $_indeces = array();
+
+    /** @var array Collection of entity unique fields */
+    public static $_unique = array();
+
+    /** @var array Collection of entity optimized field names with real field names */
+    public static $_map = array();
 
     /** @var int Identifier */
     public $id = 0;
@@ -33,12 +75,74 @@ class Record implements \samson\core\iModuleViewable, \ArrayAccess
 
     /** @var Database Database layer */
     protected $database;
+    
+    /**
+     * Find database record by primary key value.
+     * This is generic method that should be used in nested classes to find its
+     * records by some its primary key value.
+     *
+     * @param QueryInterface $query Query object instance
+     * @param string $identifier Primary key value
+     * @param self $return Variable to return found database record
+     * @return bool|null|self  Record instance or null if 3rd parameter not passed
+     */
+    public static function byID(QueryInterface $query, $identifier, self &$return = null)
+    {
+        // Find record by identifier
+        $return = static::oneByColumn($query, static::$_primary, $identifier);
+
+        // Return bool or record depending on parameters passed
+        return func_num_args() > 2 ? isset($return) : $return;
+    }
+    
+    /**
+     * Find database record by column name and its value.
+     * This is generic method that should be used in nested classes to find its
+     * records by some its column values.
+     *
+     * @param QueryInterface $query Query object instance
+     * @param string $columnValue Column name for searching in calling class
+     * @param string $columnName Column value
+     * @return null|self  Record instance if it was found and 4th variable has NOT been passed,
+     *                      NULL if record has NOT been found and 4th variable has NOT been passed
+     */
+    public static function oneByColumn(QueryInterface $query, $columnValue, $columnName)
+    {
+        // Perform db request and get materials
+        return $query->className(get_called_class())
+            ->cond($columnName, $columnValue)
+            ->first();
+    }
+
+    /**
+     * Find database record collection by column name and its value.
+     * This is generic method that should be used in nested classes to find its
+     * records by some its column values.
+     *
+     * @param QueryInterface $query Query object instance
+     * @param string $columnValue Column name for searching in calling class
+     * @param string $columnName Column value
+     * @return self[]  Record instance if it was found and 4th variable has NOT been passed,
+     *                      NULL if record has NOT been found and 4th variable has NOT been passed
+     */
+    public static function collectionByColumn(QueryInterface $query, $columnValue, $columnName)
+    {
+        // Perform db request and get materials
+        return $query->className(get_called_class())
+            ->cond($columnName, $columnValue)
+            ->exec();
+    }
 
     /** Serialization handler */
     public function __sleep()
     {
+	    $ignore = array('database','_table_name','_own_group','_primary','_attributes',
+		    '_table_attributes','_sql_from','_relations','_relation_alias',
+		    '_relation_type','_sql_select','_types','_indeces','_unique','_map','instances',
+		    'restricted');
+
         // List of serialized object fields
-        return array('id', 'className', 'oneToOne', 'oneToMany', 'attached');
+        return array_diff(array_keys(get_object_vars($this)), $ignore);
     }
 
     /**
@@ -177,7 +281,6 @@ class Record implements \samson\core\iModuleViewable, \ArrayAccess
         // PHP 5.2 compliant get attributes
         $attributes = array();
         eval('$attributes = ' . $entity . '::$_attributes;');
-
 
         // Iterate all object attributes
         foreach ($attributes as $attribute) {
