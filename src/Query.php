@@ -31,8 +31,10 @@ class Query extends QueryHandler implements QueryInterface
     /** @var Database Database instance */
     protected $database;
 
+    /** Serialization handler */
     public function __sleep()
     {
+        // Do not serialize anything
         return array();
     }
 
