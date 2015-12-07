@@ -25,6 +25,12 @@ class Database
     /** @var int Amount queries executed */
     protected $count;
 
+    /** Do not serialize anything */
+    public function __sleep()
+    {
+        return array();
+    }
+
     /**
      * Connect to a database using driver with parameters
      * @param string $database Database name
