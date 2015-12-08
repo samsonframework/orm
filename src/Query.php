@@ -40,14 +40,12 @@ class Query extends QueryHandler implements QueryInterface
 
     /**
      * Query constructor.
-     * @param string|null $entity Entity identifier
+     *
      * @param Database Database instance
-     * @throws EntityNotFound
      */
-    public function __construct($entity, Database &$database)
+    public function __construct(Database &$database)
     {
         $this->database = &$database;
-        $this->entity($entity);
         $this->flush();
     }
 
