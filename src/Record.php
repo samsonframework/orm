@@ -88,8 +88,16 @@ class Record implements iModuleViewable, \ArrayAccess
      */
     public static function byID(QueryInterface $query, $identifier, self &$return = null)
     {
-        // Find record by identifier
-        $return = static::oneByColumn($query, static::$_primary, $identifier);
+        /** @var Field $record Cache field object */
+        $return = isset(self::$instances[$identifier])
+            // Get record from cache by identifier
+            ? self::$instances[$identifier]
+            // Find record by identifier
+            : self::$instances[$identifier] = static::oneByColumn(
+                $query,
+                static::$_primary,
+                $identifier
+            );
 
         // Return bool or record depending on parameters passed
         return func_num_args() > 2 ? isset($return) : $return;
