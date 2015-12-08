@@ -128,12 +128,12 @@ class Record implements iModuleViewable, \ArrayAccess
      * records by some its column values.
      *
      * @param QueryInterface $query Query object instance
-     * @param string $columnValue Column name for searching in calling class
-     * @param string $columnName Column value
+     * @param string $columnName Column name for searching in calling class
+     * @param mixed $columnValue Column value
      * @return self[]  Record instance if it was found and 4th variable has NOT been passed,
      *                      NULL if record has NOT been found and 4th variable has NOT been passed
      */
-    public static function collectionByColumn(QueryInterface $query, $columnValue, $columnName)
+    public static function collectionByColumn(QueryInterface $query, $columnName, $columnValue)
     {
         // Perform db request and get materials
         return $query->className(get_called_class())
