@@ -83,10 +83,10 @@ class Record implements iModuleViewable, \ArrayAccess
      *
      * @param QueryInterface $query Query object instance
      * @param string $identifier Primary key value
-     * @param self $return Variable to return found database record
+     * @param mixed $return Variable to return found database record
      * @return bool|null|self  Record instance or null if 3rd parameter not passed
      */
-    public static function byID(QueryInterface $query, $identifier, self &$return = null)
+    public static function byID(QueryInterface $query, $identifier, &$return = null)
     {
         /** @var Field $record Cache field object */
         $return = isset(self::$instances[$identifier])
