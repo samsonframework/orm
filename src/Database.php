@@ -11,7 +11,7 @@ namespace samsonframework\orm;
  * Class Database
  * @package samsonframework\orm
  */
-class Database
+class Database implements DatabaseInterface
 {
     /** @var \PDO Database driver */
     protected $driver;
