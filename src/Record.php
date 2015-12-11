@@ -114,11 +114,11 @@ class Record implements iModuleViewable, \ArrayAccess
      * @return null|self  Record instance if it was found and 4th variable has NOT been passed,
      *                      NULL if record has NOT been found and 4th variable has NOT been passed
      */
-    public static function oneByColumn(QueryInterface $query, $columnValue, $columnName)
+    public static function oneByColumn(QueryInterface $query, $columnName, $columnValue)
     {
         // Perform db request and get materials
-        return $query->className(get_called_class())
-            ->cond($columnName, $columnValue)
+        return $query->entity(get_called_class())
+            ->where($columnName, $columnValue)
             ->first();
     }
 
