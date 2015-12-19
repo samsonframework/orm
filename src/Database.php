@@ -227,22 +227,37 @@ class Database implements DatabaseInterface
      * should only have one column in SELECT part and then we do not need parameter
      * for this as we can always take 0.
      *
-     * @param string $className
-     * @param mixed $query
-     * @param string $field
+     * @param string $entity Entity identifier
+     * @param QueryInterface Query object
+     * @param string $field Entity field identifier
      *
-     * @return array
+     * @return array Collection of rows with field value
      */
-    public function fetchColumn($className, $query, $field)
+    public function fetchColumn($entity, QueryInterface $query, $field)
     {
-        // Get SQL
-        $sql = $this->prepareSQL($className, $query);
-
         // TODO: Remove old attributes retrieval
-        // Get table column index by its name
-        $columnIndex = array_search($field, array_values($className::$_table_attributes));
 
-        return $this->executeFetcher(array($this, 'innerFetchColumn'), $sql, $columnIndex);
+        return $this->executeFetcher(
+            array($this, 'innerFetchColumn'),
+            $this->prepareSQL($entity, $query),
+            array_search($field, array_values($entity::$_table_attributes))
+        );
+    }
+
+    /**
+     * Count resulting rows.
+     *
+     * @param string Entity identifier
+     * @param QueryInterface Query object
+     *
+     * @return int Amount of rows
+     */
+    public function count($entity, QueryInterface $query)
+    {
+        // Modify query SQL and add counting
+        $result = $this->fetch('SELECT Count(*) as __Count FROM (' . $this->prepareSQL($entity, $query) . ') as __table');
+
+        return isset($result[0]) ? $result[0]['__Count'] : 0;
     }
 
     /**
@@ -254,5 +269,18 @@ class Database implements DatabaseInterface
     protected function quote($value)
     {
         return $this->driver->quote($value);
+    }
+
+    /**
+     * Convert QueryInterface into SQL statement.
+     *
+     * @param string Entity identifier
+     * @param QueryInterface Query object
+     *
+     * @return string SQL statement
+     */
+    protected function prepareSQL($entity, QueryInterface $query)
+    {
+
     }
 }
