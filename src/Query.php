@@ -38,6 +38,14 @@ class Query extends QueryHandler implements QueryInterface
         return array();
     }
 
+    /** Unserialize handler */
+    public function  __wakeup()
+    {
+        //Get DB
+        $this->database = db();
+    }
+
+
     /**
      * Query constructor.
      *
