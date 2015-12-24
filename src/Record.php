@@ -8,7 +8,7 @@ use samson\core\iModuleViewable;
  * @author Vitaly Iegorov <egorov@samsonos.com>
  * @author Nikita Kotenko <kotenko@samsonos.com>
  */
-class Record implements iModuleViewable, \ArrayAccess
+class Record implements iModuleViewable, \ArrayAccess, RecordInterface
 {
     /** @var array Collection of instances for caching */
     public static $instances = array();
