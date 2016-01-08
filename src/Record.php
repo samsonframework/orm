@@ -1,14 +1,14 @@
 <?php
 namespace samsonframework\orm;
 
-use samson\core\iModuleViewable;
+use samsonframework\core\RenderInterface;
 
 /**
  * ORM Active record class
  * @author Vitaly Iegorov <egorov@samsonos.com>
  * @author Nikita Kotenko <kotenko@samsonos.com>
  */
-class Record implements iModuleViewable, \ArrayAccess, RecordInterface
+class Record implements RenderInterface, \ArrayAccess, RecordInterface
 {
     /** @var array Collection of instances for caching */
     public static $instances = array();
