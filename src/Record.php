@@ -1,6 +1,7 @@
 <?php
 namespace samsonframework\orm;
 
+use samson\activerecord\dbQuery;
 use samsonframework\core\RenderInterface;
 
 /**
@@ -73,8 +74,11 @@ class Record implements RenderInterface, \ArrayAccess, RecordInterface
     /** @var bool Flag if this object has a database record */
     public $attached = false;
 
-    /** @var Database Database layer */
+    /** @var DatabaseInterface Database layer */
     protected $database;
+
+    /** @var QueryInterface */
+    protected $query;
     
     /**
      * Find database record by primary key value.
@@ -85,6 +89,7 @@ class Record implements RenderInterface, \ArrayAccess, RecordInterface
      * @param string $identifier Primary key value
      * @param mixed $return Variable to return found database record
      * @return bool|null|self  Record instance or null if 3rd parameter not passed
+     * @deprecated Record should not be queryable, query class ancestor must be used
      */
     public static function byID(QueryInterface $query, $identifier, &$return = null)
     {
@@ -113,6 +118,7 @@ class Record implements RenderInterface, \ArrayAccess, RecordInterface
      * @param string $columnName Column value
      * @return null|self  Record instance if it was found and 4th variable has NOT been passed,
      *                      NULL if record has NOT been found and 4th variable has NOT been passed
+     * @deprecated Record should not be queryable, query class ancestor must be used
      */
     public static function oneByColumn(QueryInterface $query, $columnName, $columnValue)
     {
@@ -132,6 +138,7 @@ class Record implements RenderInterface, \ArrayAccess, RecordInterface
      * @param mixed $columnValue Column value
      * @return self[]  Record instance if it was found and 4th variable has NOT been passed,
      *                      NULL if record has NOT been found and 4th variable has NOT been passed
+     * @deprecated Record should not be queryable, query class ancestor must be used
      */
     public static function collectionByColumn(QueryInterface $query, $columnName, $columnValue)
     {
@@ -154,20 +161,17 @@ class Record implements RenderInterface, \ArrayAccess, RecordInterface
     }
 
     /**
-     * Конструктор
+     * Record constructor.
      *
-     * Если идентификатор не передан - выполняется создание новой записи в БД
-     * Если идентификатор = FALSE - выполняеся создание объекта без его привязки к БД
-     * Если идентификатор > 0 - выполняется поиск записи в БД и привязка к ней в случае нахождения
-     *
-     * @param mixed $id Идентификатор объекта в БД
-     * @param string $className Имя класса
+     * @param DatabaseInterface|null $database
+     * @param QueryInterface|null    $query
      */
-    public function __construct($database = null)
+    public function __construct(DatabaseInterface $database = null, QueryInterface $query = null)
     {
-        // TODO: db() should be removed
+        // TODO: db() & new dbQuery() should be removed
         // Get database layer
-        $this->database = isset($database) ? $database : db();
+        $this->database = $database !== null ? $database : db();
+        $this->query = $query !== null ? $query : new dbQuery();
 
         // Get current class name if none is passed
         $this->className = get_class($this);
