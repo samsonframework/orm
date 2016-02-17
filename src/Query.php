@@ -1,69 +1,156 @@
 <?php
 namespace samsonframework\orm;
 
+use samsonframework\orm\exception\EntityNotFound;
+
 /**
- * Universal class for creating database queries 
+ * Database query builder.
  * @author Vitaly Iegorov <egorov@samsonos.com>
  * @version 2.0
  */
-class Query extends QueryHandler
+class Query extends QueryHandler implements QueryInterface
 {
-    /** Class name for interacting with database */
+    /** @var string Class name for interacting with database */
     protected $class_name;
 
-    /**
-     * Collection of query parameters objects
-     * @see \samson\activerecord\QueryParams
-     */
-    protected $parameters = array();
+    /** @var array Collection of entity field names for sorting order */
+    protected $sorting = array();
 
-    public function joins(
-        $targetClass,
-        $parentField = null,
-        $childField = null,
-        $relationType = TableRelation::T_ONE_TO_ONE,
-        $alias = null
-    ) {
-        return $this;
+    /** @var array Collection of entity field names for grouping query results */
+    protected $grouping = array();
+
+    /** @var array Collection of query results limitations */
+    protected $limitation = array();
+
+    /** @var Condition Query base entity condition group */
+    protected $own_condition;
+
+    /** @var Condition Query entity condition group */
+    protected $cConditionGroup;
+
+    /** @var Database Database instance */
+    protected $database;
+
+    /** Serialization handler */
+    public function __sleep()
+    {
+        // Do not serialize anything
+        return array();
     }
 
+    /** Unserialize handler */
+    public function  __wakeup()
+    {
+        //Get DB
+        $this->database = db();
+    }
+
+
+    /**
+     * Query constructor.
+     *
+     * @param Database Database instance
+     */
+    public function __construct(Database &$database)
+    {
+        $this->database = &$database;
+        $this->flush();
+    }
 
     /**
      * Reset all query parameters
-     * @return \samson\activerecord\Query Chaining
+     * @return self Chaining
      */
     public function flush()
     {
-        foreach ($this->parameters as $param) {
-            $param->flush();
-        }
+        $this->grouping = array();
+        $this->limitation = array();
+        $this->sorting = array();
+
+        $this->cConditionGroup = new Condition();
+        $this->own_condition = new Condition();
 
         return $this;
     }
 
     /**
-     * Perform database request and get collection of database record objects
-     * @see \samson\activerecord\Query::execute()
-     * @param mixed $return External variable to store query results
-     * @return mixed If no arguments passed returns query results collection, otherwise query success status
+     * Proxy function for performing database request and get collection of database record objects.
+     * This method encapsulates all logic needed for query to be done before and after actual database
+     * manager request.
+     *
+     * @param string $fetcher Database manager fetching method
+     * @return mixed Return fetching function result
      */
-    public function exec(& $return = null)
+    protected function innerExecute($fetcher = 'find')
     {
-        $args = func_num_args();
-        return $this->execute($return, $args);
+        // Call handlers stack
+        $this->callHandlers();
+
+        // Remove first argument
+        $args = func_get_args();
+        array_shift($args);
+
+        /** @var RecordInterface[] $return Perform DB request */
+        $return = call_user_func_array(array($this->database, $fetcher), $args);
+
+        // Clear this query
+        $this->flush();
+
+        // Return bool or collection
+        return $return;
     }
 
     /**
-     * Perform database request and get first record from results collection
-     * @see \samson\activerecord\Query::execute()
+     * Perform database request and get collection of database record objects.
+     *
+     * @param mixed $return External variable to store query results
+     * @return mixed If no arguments passed returns query results collection, otherwise query success status
+     */
+    public function exec(&$return = null)
+    {
+        /** @var RecordInterface[] $return Perform DB request */
+        $return = $this->innerExecute('find', $this->class_name, $this);
+
+        // Return bool or collection
+        return func_num_args() ? sizeof($return) : $return;
+    }
+
+    /**
+     * Execute current query and receive amount of resulting rows.
+     *
+     * @param null|RecordInterface $return If variable is passed resulting amount of rows would be
+     *                                      stored in this variable.
+     * @return bool|RecordInterface If method is called with $return parameter then then bool
+     *                                  with query result status would be returned, otherwise
+     *                                  query rows count would be returned.
+     */
+    public function count(&$return = null)
+    {
+        /** @var RecordInterface[] $return Perform DB request */
+        $return = $this->innerExecute('count', $this->class_name, $this);
+
+        // Return bool or collection
+        return func_num_args() ? sizeof($return) : $return;
+    }
+
+    /**
+     * Perform database request and get first record from results collection.
+     *
      * @param mixed $return External variable to store query results
      * @return mixed If no arguments passed returns query results first database record object,
      * otherwise query success status
      */
-    public function first(& $return = null)
+    public function first(&$return = null)
     {
-        $args = func_num_args();
-        return $this->execute($return, $args, 1);
+        // Add limitation
+        $this->limit(1);
+
+        /** @var RecordInterface[] $return Perform DB request */
+        $return = $this->innerExecute('find', $this->class_name, $this);
+        $return = sizeof($return) ? array_shift($return) : null;
+
+        // Return bool or collection
+        return func_num_args() ? sizeof($return) : $return;
     }
 
     /**
@@ -71,86 +158,168 @@ class Query extends QueryHandler
      * @see \samson\activerecord\Query::execute()
      * @param string $fieldName Record field name to get value from
      * @param string $return External variable to store query results
-     * @return Ambigous <boolean, NULL, mixed>
+     * @return mixed If no arguments passed returns query results first database record object,
+     * otherwise query success status
      */
-    public function fields($fieldName, & $return = null)
+    public function fields($fieldName, &$return = null)
     {
-        // Call handlers stack
-        $this->_callHandlers();
+        /** @var RecordInterface[] $return Perform DB request */
+        $return = $this->innerExecute('fetchColumn', $this->class_name, $this, $fieldName);
 
-        // Perform DB request
-        $return = db()->fetchColumn($this->class_name, $this, $fieldName);
-
-        $success = is_array($return) && sizeof($return);
-
-        // If parent function has arguments - consider them as return value and return request status
-        if (func_num_args() - 1 > 0) {
-            return $success;
-        } else { // Parent function has no arguments, return request result
-            return $return;
-        }
+        // Return bool or collection
+        return func_num_args() > 1 ? sizeof($return) : $return;
     }
 
+    /**
+     * Set query entity to work with.
+     *
+     * @param string $entity Entity identifier
+     * @return Query Chaining
+     * @throws EntityNotFound
+     */
+    public function entity($entity)
+    {
+        if (class_exists($entity)) {
+            $this->flush();
+            $this->class_name = $entity;
+        } else {
+            throw new EntityNotFound('['.$entity.'] not found');
+        }
 
+        return $this;
+    }
 
     /**
-     * Perform database request and return different results depending on function arguments.
-     * @see \samson\activerecord\Record
-     * @param array $result External variable to store dabatase request results collection
-     * @param integer|bool $rType Amount of arguments passed to parent function
-     * @param integer $limit Quantity of records to return
-     * @param callable $handler External callable handler for results modification
-     * @param array $handlerArgs External callable handler arguments
-     * @return boolean/array Boolean if $r_type > 0, otherwise array of request results
+     * Get correct query condition depending on entity field name.
+     * If base entity has field with this name - use base entity condition
+     * group, otherwise default condition group.
+     *
+     * @param string $fieldName Entity field name
+     * @return Condition Correct query condition group
      */
-    protected function & execute(
-        & $result = null,
-        $rType = false,
-        $limit = null,
-        $handler = null,
-        $handlerArgs = array()
-    ) {
-        // Call handlers stack
-        $this->_callHandlers();
-
-        // Perform DB request
-        $result = db()->find($this->class_name, $this);
-
-        // If external result handler is passed - use it
-        if (isset($handler)) {
-            // Add results collection to array
-            array_unshift($handlerArgs, $result);
-
-            // Call external handler with parameters
-            $result = call_user_func_array($handler, $handlerArgs);
+    protected function &conditionGroup($fieldName)
+    {
+        if (property_exists($this->class_name, $fieldName)) {
+            // Add this condition to base entity condition group
+            return $this->own_condition;
         }
 
-        // Clear this query
-        $this->flush();
+        return $this->cConditionGroup;
+    }
 
-        // Count records
-        $count = sizeof($result);
+    /**
+     * Add query condition as prepared Condition instance.
+     *
+     * @param ConditionInterface $condition Condition to be added
+     * @return self Chaining
+     */
+    public function whereCondition(ConditionInterface $condition)
+    {
+        // TODO: We cannot define to which group this condition is related
+        $this->own_condition->addCondition($condition);
 
-        // Define is request was successful
-        $success = is_array($result) && $count;
+//        // Iterate condition arguments
+//        foreach ($condition as $argument) {
+//            // If passed condition group has another condition group as argument
+//            if (is_a($argument, __NAMESPACE__ . '\Condition')) {
+//                // Go deeper in recursion
+//                $this->whereCondition($argument);
+//            } else { // Otherwise add condition argument to correct condition group
+//                $this->conditionGroup($argument->field)->addArgument($argument);
+//            }
+//        }
 
-        // Is amount of records is specified
-        if (isset($limit)) {
-            // If we have not enought records - return null
-            if ($count < $limit) {
-                $result = null;
-            } elseif ($limit === 1) { // If we need first record
-                $result = array_shift($result);
-            } elseif ($limit > 1) { // Slice array for nessesar amount
-                $result = array_slice($result, 0, $limit);
+        return $this;
+    }
+
+    /**
+     * Add condition to current query.
+     *
+     * @param string $fieldName Entity field name
+     * @param string $fieldValue Value
+     * @param string $relation Relation between field name and its value
+     * @return self Chaining
+     */
+    public function where($fieldName, $fieldValue = null, $relation = '=')
+    {
+        // If empty array is passed
+        if (is_string($fieldName)) {
+            // Handle empty field value passing to avoid unexpected behaviour
+            if (!isset($fieldValue)) {
+                $relation = ArgumentInterface::ISNULL;
+                $fieldValue = '';
+            } elseif (is_array($fieldValue) && !sizeof($fieldValue)) {
+                // TODO: We consider empty array passed as condition value as NULL, illegal condition
+                $relation = ArgumentInterface::EQUAL;
+                $fieldName = '1';
+                $fieldValue = '0';
             }
+
+            // Add condition argument
+            $this->conditionGroup($fieldName)->add($fieldName, $fieldValue, $relation);
+        } else {
+            throw new \InvalidArgumentException('You can only pass string as first argument');
         }
 
-        // If parent function has arguments - consider them as return value and return request status
-        if ($rType > 0) {
-            return $success;
-        } else { // Parent function has no arguments, return request result
-            return $result;
-        }
+        return $this;
+    }
+
+    /**
+     * Join entity to query.
+     *
+     * @param string $entityName Entity identifier
+     * @return self Chaining
+     */
+    public function join($entityName)
+    {
+        // TODO: We need to implement this logic
+        $entityName .= '';
+
+        // Chaining
+        return $this;
+    }
+
+    /**
+     * Add query result grouping.
+     *
+     * @param string $fieldName Entity field identifier for grouping
+     * @return self Chaining
+     */
+    public function groupBy($fieldName)
+    {
+        $this->grouping[] = $fieldName;
+
+        // Chaining
+        return $this;
+    }
+
+    /**
+     * Add query result quantity limitation.
+     *
+     * @param int $offset Resulting offset
+     * @param null|int $quantity Amount of RecordInterface object to return
+     * @return self Chaining
+     */
+    public function limit($offset, $quantity = null)
+    {
+        $this->limitation = array($offset, $quantity);
+
+        // Chaining
+        return $this;
+    }
+
+    /**
+     * Add query result sorting.
+     *
+     * @param string $fieldName Entity field identifier for worting
+     * @param string $order Sorting order
+     * @return self Chaining
+     */
+    public function orderBy($fieldName, $order = 'ASC')
+    {
+        $this->sorting[] = array($fieldName, $order);
+
+        // Chaining
+        return $this;
     }
 }

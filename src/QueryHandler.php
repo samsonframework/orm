@@ -6,12 +6,12 @@ namespace samsonframework\orm;
  * @author Vitaly Iegorov <egorov@samsonos.com>
  * @version 2.0
  */
-class QueryHandler implements QueryInterface
+class QueryHandler
 {
-    /** Collection of external query handlers(callbacks) */
+    /** @var callback[] Collection of external query handlers(callbacks) */
     private $handlers = array();
 
-    /** Collection of external query handlers(callbacks) additional parameters */
+    /** @var array Collection of external query handlers(callbacks) additional parameters */
     private $params = array();
 
     /**
@@ -42,7 +42,7 @@ class QueryHandler implements QueryInterface
     }
 
     /** Execute all available external query handlers */
-    protected function _callHandlers()
+    protected function callHandlers()
     {
         // Iterate handlers and run them
         foreach ($this->handlers as $i => $handler) {

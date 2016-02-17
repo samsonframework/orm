@@ -1,20 +1,19 @@
 <?php
+/**
+ * Created by PhpStorm.
+ * User: VITALYIEGOROV
+ * Date: 05.12.15
+ * Time: 16:13
+ */
 namespace samsonframework\orm;
 
 /**
- * Database field relation types
- * @author Vitaly Iegorov <egorov@samsonos.com>
+ * Conditions arguments relations.
+ *
+ * @package samsonframework\orm
+ * @deprecate
  */
-class Relation
+class Relation implements ArgumentInterface
 {
-    const EQUAL = '=';
-    const NOT_EQUAL = '!=';
-    const GREATER = '>';
-    const LOWER = '<';
-    const GREATER_EQ = '>=';
-    const LOWER_EQ = '<=';
-    const LIKE = ' LIKE ';
-    const NOTNULL = ' IS NOT NULL ';
-    const ISNULL = ' IS NULL ';
-    const OWN = ' !!! ';
+
 }

@@ -11,7 +11,7 @@ namespace samsonframework\orm;
  * Class Database
  * @package samsonframework\orm
  */
-class Database
+class Database implements DatabaseInterface
 {
     /** @var \PDO Database driver */
     protected $driver;
@@ -19,12 +19,17 @@ class Database
     /** @var string Database name */
     protected $database;
 
-    /** @var int Amount of miliseconds spent on queries */
+    /** @var int Amount of milliseconds spent on queries */
     protected $elapsed;
 
     /** @var int Amount queries executed */
     protected $count;
 
+    /** Do not serialize anything */
+    public function __sleep()
+    {
+        return array();
+    }
 
     /**
      * Connect to a database using driver with parameters
@@ -48,7 +53,6 @@ class Database
     ) {
         // If we have not connected yet
         if (!isset($this->driver)) {
-
             $this->database = $database;
 
             // Check if configured database exists
@@ -56,26 +60,53 @@ class Database
 
             // Set correct encodings
             $this->query("set character_set_client='utf8'");
-            $this->query("set character_set_results='utf8'" );
+            $this->query("set character_set_results='utf8'");
             $this->query("set collation_connection='utf8_general_ci'");
+
+            //new ManagerGenerator($this);
         }
     }
 
     /**
-     * Create new database record
-     * @param string $className Entity class name
+     * Get database name
+     * @return string
      */
-    public function entity($className)
+    public function database()
     {
-        return new $className($this);
+        return $this->database;
     }
 
     /**
      * High-level database query executor
      * @param string $sql SQL statement
      * @return mixed Database query result
+     * @deprecated Use execute()
      */
-    public function & query($sql)
+    public function query($sql)
+    {
+        return $this->execute($sql);
+    }
+
+    /**
+     * Intreal error beautifier
+     * @param \Exception $exception
+     * @param $sql
+     */
+    private function outputError(\Exception $exception, $sql, $text = 'Error executing database query:')
+    {
+        echo("\n" . '<div style="font-size:12px; position:relative; background:red; z-index:9999999;">'
+            .'<div style="padding:4px 10px;">'.$text.'</div>'
+            .'<div style="padding:0px 10px;">['.htmlspecialchars($exception->getMessage()).']</div>'
+            .'<textarea style="display:block; width:100%; min-height:100px;">'.$sql . '</textarea></div>');
+    }
+
+    /**
+     * Proxy function for executing database fetching logic with exception,
+     * error, profile handling
+     * @param callback $fetcher Callback for fetching
+     * @return mixed Fetching function result
+     */
+    private function executeFetcher($fetcher, $sql)
     {
         $result = array();
 
@@ -83,11 +114,15 @@ class Database
             // Store timestamp
             $tsLast = microtime(true);
 
-            try {
-                // Perform database query
-                $result = $this->driver->prepare($sql)->execute();
-            } catch (\PDOException $e) {
-                echo("\n" . $sql . '-' . $e->getMessage());
+            try { // Call fetcher
+                // Get argument and remove first one
+                $args = func_get_args();
+                array_shift($args);
+
+                // Proxy calling of fetcher function with passing parameters
+                $result = call_user_func_array($fetcher, $args);
+            } catch (\PDOException $exception) {
+                $this->outputError($exception, $sql, 'Error executing ['.$fetcher.']');
             }
 
             // Store queries count
@@ -98,6 +133,23 @@ class Database
         }
 
         return $result;
+    }
+
+    /**
+     * High-level database query executor
+     * @param string $sql SQL statement
+     * @return mixed Database query result
+     */
+    private function innerQuery($sql)
+    {
+        try {
+            // Perform database query
+            return $this->driver->prepare($sql)->execute();
+        } catch (\PDOException $e) {
+            $this->outputError($e, $sql);
+        }
+
+        return null;
     }
 
     /**
@@ -106,247 +158,129 @@ class Database
      * method will return empty array of stdClass all arrays regarding to $className is
      * passed or not.
      *
-     * @param string $sql           Query text
-     * @param string $className     Class name if we want to create object
+     * @param string $sql SQL statement
      * @return array Collection of arrays or objects
      */
-    public function & fetch($sql, $className = null)
+    private function innerFetch($sql, $className = null)
     {
-        // Return value
-        $result = array();
-
-        if (isset($this->driver)) {
-            // Store timestamp
-            $tsLast = microtime(true);
-
-            try {
-                // Perform database query
-                if (!isset($className)) { // Return array
-                    $result = $this->driver->query($sql)->fetchAll(\PDO::FETCH_ASSOC);
-                } else { // Create object of passed class name
-                    $result = $this->driver->query($sql)->fetchAll(\PDO::FETCH_CLASS, $className, array(&$this));
-                }
-            } catch (\PDOException $e) {
-                echo("\n" . $sql . '-' . $e->getMessage());
+        try {
+            // Perform database query
+            if (!isset($className)) { // Return array
+                return $this->driver->query($sql)->fetchAll(\PDO::FETCH_ASSOC);
+            } else { // Create object of passed class name
+                return $this->driver->query($sql)->fetchAll(\PDO::FETCH_CLASS, $className, array(&$this));
             }
-
-            // Store queries count
-            $this->count++;
-
-            // Count elapsed time
-            $this->elapsed += microtime(true) - $tsLast;
+        } catch (\PDOException $e) {
+            $this->outputError($e, $sql, 'Fetching database records:');
         }
 
-        return $result;
+        return array();
     }
 
     /**
      * Special accelerated function to retrieve db record fields instead of objects
      *
-     * @param string $className
-     * @param mixed $query
-     * @param string $field
+     * @param string $sql SQL statement
+     * @param int $columnIndex Needed column index
      *
-     * @return array
+     * @return array Database records column value collection
      */
-    public function & fetchColumn($className, $query, $field)
+    private function innerFetchColumn($sql, $columnIndex)
     {
-        $result = array();
-
-        if (isset($this->driver)) {
-            // Store timestamp
-            $tsLast = microtime(true);
-
-            // Get SQL
-            $sql = $this->prepareSQL($className, $query);
-
-            // Get table column index by its name
-            $columnIndex = array_search($field, array_values($className::$_table_attributes));
-
-            try {
-                // Perform database query
-                $result = $this->driver->query($sql)->fetchAll(\PDO::FETCH_COLUMN, $columnIndex);
-            } catch (\PDOException $e) {
-                echo("\n" . $sql . '-' . $e->getMessage());
-            }
-
-            // Store queries count
-            $this->count++;
-
-            // Count elapsed time
-            $this->elapsed += microtime(true) - $tsLast;
+        try {
+            // Perform database query
+            return $this->driver->query($sql)->fetchAll(\PDO::FETCH_COLUMN, $columnIndex);
+        } catch (\PDOException $e) {
+            $this->outputError($e, $sql, 'Error fetching records column values:');
         }
 
-        return $result;
+        return array();
     }
 
     /**
-     * Retrieve one record from a database, if $className is passed method
+     * High-level database query executor
+     * @param string $sql SQL statement
+     * @return mixed Database query result
+     */
+    public function execute($sql)
+    {
+        return $this->executeFetcher(array($this, 'innerQuery'), $sql);
+    }
+
+    /**
+     * Retrieve array of records from a database, if $className is passed method
      * will try to create an object of that type. If request has failed than
-     * method will return empty array or stdClass regarding to $className is
+     * method will return empty array of stdClass all arrays regarding to $className is
      * passed or not.
      *
-     * @param string $sql           Query text
-     * @param string $className     Class name if we want to create object
-     * @return array|object Record as array or object
+     * @param string $sql SQL statement
+     * @return array Collection of arrays or objects
      */
-    public function & fetchOne($sql, $className = null)
+    public function fetch($sql)
     {
-        // Return value, configure to return correct type
-        $result = isset($className) ? new \stdClass() : array();
-
-        if (isset($this->driver)) {
-            // Store timestamp
-            $tsLast = microtime(true);
-
-            try {
-                // Perform database query
-                if (!isset($className)) { // Return array
-                    $result = $this->driver->query($sql)->fetch(\PDO::FETCH_ASSOC);
-                } else { // Create object of passed class name
-                    $result = $this->driver->query($sql)->fetchObject($className, array(&$this));
-                }
-
-            } catch (\PDOException $e) {
-                echo("\n" . $sql . '-' . $e->getMessage());
-            }
-
-            // Store queries count
-            $this->count++;
-
-            // Count elapsed time
-            $this->elapsed += microtime(true) - $tsLast;
-        }
-
-        return $result;
+        return $this->executeFetcher(array($this, 'innerFetch'), $sql);
     }
 
     /**
-     * Get one record from database by its field value
-     * @param string $className Enitity
-     * @param string $fieldName Field name
-     * @param string $fieldValue Field value
-     * @return object Found object instance or an empty stdClass instance
-     */
-    public function fetchField($className, $fieldName, $fieldValue)
-    {
-        // Build SQL statement
-        $sql = 'SELECT *
-        FROM `'.$className::$_table_name.'`
-        WHERE `'.$fieldName.'` = '.$this->driver->quote($fieldValue);
-
-        return $this->fetchOne($sql);
-    }
-
-    public function create($className, & $object = null)
-    {
-        // ??
-        $fields = $this->getQueryFields($className, $object);
-
-        // Build SQL query
-        $sql = 'INSERT INTO `' . $className::$_table_name . '` (`'
-            . implode('`,`', array_keys($fields)) . '`)
-            VALUES (' . implode(',', $fields) . ')';
-
-        $this->query($sql);
-
-        // Return last inserted row identifier
-        return $this->driver->lastInsertId();
-    }
-
-    public function update($className, & $object)
-    {
-        // ??
-        $fields = $this->getQueryFields($className, $object, true);
-
-        // Build SQL query
-        $sql = 'UPDATE `' . $className::$_table_name . '` SET ' . implode(',',
-                $fields) . ' WHERE ' . $className::$_table_name . '.' . $className::$_primary . '="' . $object->id . '"';
-
-        $this->query($sql);
-    }
-
-    public function delete($className, & $object)
-    {
-        // Build SQL query
-        $sql = 'DELETE FROM `' . $className::$_table_name . '` WHERE ' . $className::$_primary . ' = "' . $object->id . '"';
-
-        $this->query($sql);
-    }
-
-    /** Count query result */
-    public function count($className, $query)
-    {
-        // Get SQL
-        $sql = 'SELECT Count(*) as __Count FROM (' . $this->prepareSQL($className, $query) . ') as __table';
-
-        // Выполним запрос к БД
-        $result = $this->fetch($sql);
-
-        return $result[0]['__Count'];
-    }
-
-    /**
-     * Выполнить защиту значения поля для его безопасного использования в запросах
+     * Special accelerated function to retrieve db record fields instead of objects
+     * TODO: Change to be independent of query and class name, just SQL, this SQL
+     * should only have one column in SELECT part and then we do not need parameter
+     * for this as we can always take 0.
      *
-     * @param string $value Значения поля для запроса
-     * @return string $value Безопасное представление значения поля для запроса
+     * @param string $entity Entity identifier
+     * @param QueryInterface Query object
+     * @param string $field Entity field identifier
+     *
+     * @return array Collection of rows with field value
      */
-    protected function protectQueryValue($value)
+    public function fetchColumn($entity, QueryInterface $query, $field)
     {
-        // If magic quotes are on - remove slashes
-        if (get_magic_quotes_gpc()) {
-            $value = stripslashes($value);
-        }
+        // TODO: Remove old attributes retrieval
 
-        // Normally escape string
-        $value = $this->driver->quote($value);
-
-        // Return value in quotes
-        return $value;
+        return $this->executeFetcher(
+            array($this, 'innerFetchColumn'),
+            $this->prepareSQL($entity, $query),
+            array_search($field, array_values($entity::$_table_attributes))
+        );
     }
 
     /**
-     * Prepare create & update SQL statements fields
-     * @param string $className Entity name
-     * @param Record $object Database object to get values(if needed)
-     * @param bool $straight Way of forming SQL field statements
-     * @return array Collection of key => value with SQL fields statements
+     * Count resulting rows.
+     *
+     * @param string Entity identifier
+     * @param QueryInterface Query object
+     *
+     * @return int Amount of rows
      */
-    protected function & getQueryFields($className, & $object = null, $straight = false)
+    public function count($entity, QueryInterface $query)
     {
-        // Результирующая коллекция
-        $collection = array();
+        // Modify query SQL and add counting
+        $result = $this->fetch('SELECT Count(*) as __Count FROM (' . $this->prepareSQL($entity, $query) . ') as __table');
 
-        // Установим флаг получения значений атрибутов из переданного объекта
-        $use_values = isset($object);
-
-        // Переберем "настоящее" имена атрибутов схемы данных для объекта
-        foreach ($className::$_table_attributes as $attribute => $map_attribute) {
-            // Отметки времени не заполняем
-            if ($className::$_types[$attribute] == 'timestamp') {
-                continue;
-            }
-
-            // Основной ключ не заполняем
-            if ($className::$_primary == $attribute) {
-                continue;
-            }
-
-            // Получим значение атрибута объекта защитив от инъекций, если объект передан
-            $value = $use_values ? $this->driver->quote($object->$map_attribute) : '';
-
-            // Добавим значение поля, в зависимости от вида вывывода метода
-            $collection[$map_attribute] = ($straight ? $className::$_table_name . '.' . $map_attribute . '=' : '') . $value;
-        }
-
-        // Вернем полученную коллекцию
-        return $collection;
+        return isset($result[0]) ? (int)$result[0]['__Count'] : 0;
     }
 
-    /** @deprecated Use query() */
-    public function & simple_query($sql)
+    /**
+     * Quote variable for security reasons.
+     *
+     * @param string $value
+     * @return string Quoted value
+     */
+    protected function quote($value)
     {
-        return $this->query($sql);
+        return $this->driver->quote($value);
+    }
+
+    /**
+     * Convert QueryInterface into SQL statement.
+     *
+     * @param string Entity identifier
+     * @param QueryInterface Query object
+     *
+     * @return string SQL statement
+     */
+    protected function prepareSQL($entity, QueryInterface $query)
+    {
+
     }
 }
