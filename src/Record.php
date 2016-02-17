@@ -199,7 +199,9 @@ class Record implements RenderInterface, \ArrayAccess, RecordInterface
 
             // Запишем все аттрибуты которые БД выставила новой записи
             foreach ($_attributes as $name => $r_name) {
-                $this->$name = $db_record->$name;
+                if ($db_record->$name !== null) {
+                    $this->$name = $db_record->$name;
+                }
             }
 
             // Установим флаг что мы привязались к БД

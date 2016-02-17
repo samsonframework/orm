@@ -257,7 +257,7 @@ class Database implements DatabaseInterface
         // Modify query SQL and add counting
         $result = $this->fetch('SELECT Count(*) as __Count FROM (' . $this->prepareSQL($entity, $query) . ') as __table');
 
-        return isset($result[0]) ? $result[0]['__Count'] : 0;
+        return isset($result[0]) ? (int)$result[0]['__Count'] : 0;
     }
 
     /**
