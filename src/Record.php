@@ -198,9 +198,11 @@ class Record implements RenderInterface, \ArrayAccess, RecordInterface
             $db_record = $this->database->find_by_id($className, $this->id);
 
             // Запишем все аттрибуты которые БД выставила новой записи
-            foreach ($_attributes as $name => $r_name) {
-                if ($db_record->$name !== null) {
-                    $this->$name = $db_record->$name;
+            if (is_object($db_record)) {
+                foreach ($_attributes as $name => $r_name) {
+                    if (property_exists($db_record, $name) && $db_record->$name !== null) {
+                        $this->$name = $db_record->$name;
+                    }
                 }
             }
 
