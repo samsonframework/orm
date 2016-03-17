@@ -31,21 +31,29 @@ class Query extends QueryHandler implements QueryInterface
     /** @var Database Database instance */
     protected $database;
 
+    /** Serialization handler */
     public function __sleep()
     {
+        // Do not serialize anything
         return array();
     }
 
+    /** Unserialize handler */
+    public function  __wakeup()
+    {
+        //Get DB
+        $this->database = db();
+    }
+
+
     /**
      * Query constructor.
-     * @param string|null $entity Entity identifier
+     *
      * @param Database Database instance
-     * @throws EntityNotFound
      */
-    public function __construct($entity, Database &$database)
+    public function __construct(Database &$database)
     {
         $this->database = &$database;
-        $this->entity($entity);
         $this->flush();
     }
 
@@ -102,6 +110,24 @@ class Query extends QueryHandler implements QueryInterface
     {
         /** @var RecordInterface[] $return Perform DB request */
         $return = $this->innerExecute('find', $this->class_name, $this);
+
+        // Return bool or collection
+        return func_num_args() ? sizeof($return) : $return;
+    }
+
+    /**
+     * Execute current query and receive amount of resulting rows.
+     *
+     * @param null|RecordInterface $return If variable is passed resulting amount of rows would be
+     *                                      stored in this variable.
+     * @return bool|RecordInterface If method is called with $return parameter then then bool
+     *                                  with query result status would be returned, otherwise
+     *                                  query rows count would be returned.
+     */
+    public function count(&$return = null)
+    {
+        /** @var RecordInterface[] $return Perform DB request */
+        $return = $this->innerExecute('count', $this->class_name, $this);
 
         // Return bool or collection
         return func_num_args() ? sizeof($return) : $return;

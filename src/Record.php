@@ -1,14 +1,15 @@
 <?php
 namespace samsonframework\orm;
 
-use samson\core\iModuleViewable;
+use samson\activerecord\dbQuery;
+use samsonframework\core\RenderInterface;
 
 /**
  * ORM Active record class
  * @author Vitaly Iegorov <egorov@samsonos.com>
  * @author Nikita Kotenko <kotenko@samsonos.com>
  */
-class Record implements iModuleViewable, \ArrayAccess
+class Record implements RenderInterface, \ArrayAccess, RecordInterface
 {
     /** @var array Collection of instances for caching */
     public static $instances = array();
@@ -73,8 +74,11 @@ class Record implements iModuleViewable, \ArrayAccess
     /** @var bool Flag if this object has a database record */
     public $attached = false;
 
-    /** @var Database Database layer */
+    /** @var DatabaseInterface Database layer */
     protected $database;
+
+    /** @var QueryInterface */
+    protected $query;
     
     /**
      * Find database record by primary key value.
@@ -83,13 +87,22 @@ class Record implements iModuleViewable, \ArrayAccess
      *
      * @param QueryInterface $query Query object instance
      * @param string $identifier Primary key value
-     * @param self $return Variable to return found database record
+     * @param mixed $return Variable to return found database record
      * @return bool|null|self  Record instance or null if 3rd parameter not passed
+     * @deprecated Record should not be queryable, query class ancestor must be used
      */
-    public static function byID(QueryInterface $query, $identifier, self &$return = null)
+    public static function byID(QueryInterface $query, $identifier, &$return = null)
     {
-        // Find record by identifier
-        $return = static::oneByColumn($query, static::$_primary, $identifier);
+        /** @var Field $record Cache field object */
+        $return = isset(self::$instances[$identifier])
+            // Get record from cache by identifier
+            ? self::$instances[$identifier]
+            // Find record by identifier
+            : self::$instances[$identifier] = static::oneByColumn(
+                $query,
+                static::$_primary,
+                $identifier
+            );
 
         // Return bool or record depending on parameters passed
         return func_num_args() > 2 ? isset($return) : $return;
@@ -105,12 +118,13 @@ class Record implements iModuleViewable, \ArrayAccess
      * @param string $columnName Column value
      * @return null|self  Record instance if it was found and 4th variable has NOT been passed,
      *                      NULL if record has NOT been found and 4th variable has NOT been passed
+     * @deprecated Record should not be queryable, query class ancestor must be used
      */
-    public static function oneByColumn(QueryInterface $query, $columnValue, $columnName)
+    public static function oneByColumn(QueryInterface $query, $columnName, $columnValue)
     {
         // Perform db request and get materials
-        return $query->className(get_called_class())
-            ->cond($columnName, $columnValue)
+        return $query->entity(get_called_class())
+            ->where($columnName, $columnValue)
             ->first();
     }
 
@@ -120,12 +134,13 @@ class Record implements iModuleViewable, \ArrayAccess
      * records by some its column values.
      *
      * @param QueryInterface $query Query object instance
-     * @param string $columnValue Column name for searching in calling class
-     * @param string $columnName Column value
+     * @param string $columnName Column name for searching in calling class
+     * @param mixed $columnValue Column value
      * @return self[]  Record instance if it was found and 4th variable has NOT been passed,
      *                      NULL if record has NOT been found and 4th variable has NOT been passed
+     * @deprecated Record should not be queryable, query class ancestor must be used
      */
-    public static function collectionByColumn(QueryInterface $query, $columnValue, $columnName)
+    public static function collectionByColumn(QueryInterface $query, $columnName, $columnValue)
     {
         // Perform db request and get materials
         return $query->className(get_called_class())
@@ -146,20 +161,17 @@ class Record implements iModuleViewable, \ArrayAccess
     }
 
     /**
-     * Конструктор
+     * Record constructor.
      *
-     * Если идентификатор не передан - выполняется создание новой записи в БД
-     * Если идентификатор = FALSE - выполняеся создание объекта без его привязки к БД
-     * Если идентификатор > 0 - выполняется поиск записи в БД и привязка к ней в случае нахождения
-     *
-     * @param mixed $id Идентификатор объекта в БД
-     * @param string $className Имя класса
+     * @param DatabaseInterface|null $database
+     * @param QueryInterface|null    $query
      */
-    public function __construct($database = null)
+    public function __construct(DatabaseInterface $database = null, QueryInterface $query = null)
     {
-        // TODO: db() should be removed
+        // TODO: db() & new dbQuery() should be removed
         // Get database layer
-        $this->database = isset($database) ? $database : db();
+        $this->database = $database !== null ? $database : db();
+        $this->query = $query !== null ? $query : new dbQuery();
 
         // Get current class name if none is passed
         $this->className = get_class($this);
@@ -187,7 +199,9 @@ class Record implements iModuleViewable, \ArrayAccess
 
             // Запишем все аттрибуты которые БД выставила новой записи
             foreach ($_attributes as $name => $r_name) {
-                $this->$name = $db_record->$name;
+                if ($db_record->$name !== null) {
+                    $this->$name = $db_record->$name;
+                }
             }
 
             // Установим флаг что мы привязались к БД
