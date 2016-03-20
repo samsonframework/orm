@@ -122,7 +122,8 @@ class Database implements DatabaseInterface
                 // Proxy calling of fetcher function with passing parameters
                 $result = call_user_func_array($fetcher, $args);
             } catch (\PDOException $exception) {
-                $this->outputError($exception, $sql, 'Error executing ['.$fetcher.']');
+                throw $exception;
+                //$this->outputError($exception, $sql, 'Error executing ['.$fetcher.']');
             }
 
             // Store queries count
