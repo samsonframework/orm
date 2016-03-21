@@ -88,12 +88,18 @@ class Database implements DatabaseInterface
     }
 
     /**
-     * Intreal error beautifier
+     * Internal error beautifier.
+     *
      * @param \Exception $exception
-     * @param $sql
+     * @param            $sql
+     * @param string     $text
+     *
+     * @throws \Exception
      */
     private function outputError(\Exception $exception, $sql, $text = 'Error executing database query:')
     {
+        throw $exception;
+
         echo("\n" . '<div style="font-size:12px; position:relative; background:red; z-index:9999999;">'
             .'<div style="padding:4px 10px;">'.$text.'</div>'
             .'<div style="padding:0px 10px;">['.htmlspecialchars($exception->getMessage()).']</div>'
@@ -122,8 +128,7 @@ class Database implements DatabaseInterface
                 // Proxy calling of fetcher function with passing parameters
                 $result = call_user_func_array($fetcher, $args);
             } catch (\PDOException $exception) {
-                throw $exception;
-                //$this->outputError($exception, $sql, 'Error executing ['.$fetcher.']');
+                $this->outputError($exception, $sql, 'Error executing ['.$fetcher.']');
             }
 
             // Store queries count
