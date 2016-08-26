@@ -51,7 +51,7 @@ class Query extends QueryHandler implements QueryInterface
      *
      * @param Database Database instance
      */
-    public function __construct(Database &$database)
+    public function __construct(Database $database)
     {
         $this->database = &$database;
         $this->flush();
