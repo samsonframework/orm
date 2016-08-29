@@ -197,9 +197,9 @@ class Query extends QueryHandler implements QueryInterface
     /**
      * {@inheritdoc}
      */
-    public function orderBy(string $fieldName, string $order = 'ASC') : QueryInterface
+    public function orderBy(string $tableName, string $fieldName, string $order = 'ASC') : QueryInterface
     {
-        $this->sorting[] = [$fieldName, $order];
+        $this->sorting[$tableName] = [$fieldName, $order];
 
         // Chaining
         return $this;
