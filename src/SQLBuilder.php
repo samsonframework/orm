@@ -50,6 +50,24 @@ class SQLBuilder
     }
 
     /**
+     * Build FROM statement part.
+     *
+     * @param TableMetadata $metadata
+     * @param TableMetadata[] $joinedMetadata
+     * @return string FROM statement
+     */
+    public function buildFromStatement(TableMetadata $metadata, array $joinedMetadata = []) : string
+    {
+        $sql = 'FROM `'.$metadata->tableName.'`';
+
+        foreach ($joinedMetadata as $joinMetadata) {
+            $sql .= "\n". '`'.$joinMetadata->tableName.'`';
+        }
+
+        return $sql;
+    }
+
+    /**
      * Build grouping statement.
      *
      * @param array $columnNames Column names collection

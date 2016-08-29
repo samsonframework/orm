@@ -43,10 +43,11 @@ class Query extends QueryHandler implements QueryInterface
     protected function buildSQL() : string
     {
         $sql = $this->sqlBuilder->buildSelectStatement($this->metadata, $this->joins);
-        $sql .= $this->sqlBuilder->buildWhereStatement($this->condition, $this->metadata);
-        $sql .= $this->sqlBuilder->buildGroupStatement($this->grouping);
-        $sql .= $this->sqlBuilder->buildOrderStatement($this->sorting[0], $this->sorting[1]);
-        $sql .= $this->sqlBuilder->buildLimitStatement($this->limitation[0], $this->limitation[1]);
+        $sql .= "\n".$this->sqlBuilder->buildFromStatement($this->metadata, $this->joins);
+        $sql .= "\n".$this->sqlBuilder->buildWhereStatement($this->condition, $this->metadata);
+        $sql .= "\n".$this->sqlBuilder->buildGroupStatement($this->grouping);
+        $sql .= "\n".$this->sqlBuilder->buildOrderStatement($this->sorting[0], $this->sorting[1]);
+        $sql .= "\n".$this->sqlBuilder->buildLimitStatement($this->limitation[0], $this->limitation[1]);
 
         return $sql;
     }
