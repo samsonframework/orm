@@ -121,27 +121,21 @@ class QueryToSQL
      * @param string   $class_name Схема сущности БД для которой данные условия
      * @param Argument $argument   Аругемнт условия для преобразования
      *
-*@return string Возвращает разпознанную строку с условием для MySQL
+     * @return string Возвращает разпознанную строку с условием для MySQL
+     * @throws \InvalidArgumentException
      */
     protected function parseCondition(TableMetadata $metadata, Argument $argument)
     {
-
-        // Получим "правильное" имя аттрибута сущности и выделим постоянную часть условия
         $sql = $metadata->getTableColumnName($argument->field);
 
         // Если аргумент условия - это НЕ массив - оптимизации по более частому условию
         if (!is_array($argument->value)) {
-            // NULL condition
-            if ($argument->relation === ArgumentInterface::NOTNULL || $argument->relation === ArgumentInterface::ISNULL) {
+            if (in_array($argument->relation, [ArgumentInterface::NOTNULL, ArgumentInterface::ISNULL], true)) {
                 return $sql . $argument->relation;
-            } // Own condition
-            else {
-                if ($argument->relation === ArgumentInterface::OWN) {
-                    return $argument->field;
-                } // Regular condition
-                else {
-                    return $sql . $argument->relation . $this->protectQueryValue($argument->value);
-                }
+            } elseif ($argument->relation === ArgumentInterface::OWN) {
+                return $argument->field;
+            } else {
+                return $sql . $argument->relation . '"'.$argument->value .'"';
             }
         } // Если аргумент условия - это массив и в нем есть значения
         else {
