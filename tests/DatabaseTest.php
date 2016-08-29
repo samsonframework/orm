@@ -51,12 +51,37 @@ class DatabaseTest extends TestCase
         static::assertEquals($data, $this->database->fetchColumns('SELECT column1, column2 FROM `table`', 1));
     }
 
-    public function testFetchObjects()
+    public function testFetchArray()
     {
         $data = [
             ['primary'=>1, 'testField' => 'test1'],
             ['primary'=>2, 'testField' => 'test2']
         ];
+
+        $stmt = $this->createMock(\PDOStatement::class);
+        $stmt->method('fetchAll')->willReturn($data);
+
+        $this->driver->method('query')->willReturn($stmt);
+
+        $objects = $this->database->fetchArray('SELECT column1, column2 FROM `table`', TestEntity::class);
+
+        static::assertArrayHasKey('primary', $objects[0]);
+        static::assertArrayHasKey('primary', $objects[1]);
+        static::assertEquals(1, $objects[0]['primary']);
+        static::assertEquals(2, $objects[1]['primary']);
+    }
+
+    public function testFetchObjects()
+    {
+        $testEntity = new TestEntity($this->database);
+        $testEntity->primary = 1;
+        $testEntity->testField = 1;
+
+        $testEntity2 = new TestEntity($this->database);
+        $testEntity2->primary = 2;
+        $testEntity2->testField = 2;
+
+        $data = [$testEntity, $testEntity2];
 
         $stmt = $this->createMock(\PDOStatement::class);
         $stmt->method('fetchAll')->willReturn($data);

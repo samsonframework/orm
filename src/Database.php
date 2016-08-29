@@ -69,7 +69,10 @@ class Database implements DatabaseInterface
      */
     public function fetchColumn($entity, QueryInterface $query, $field)
     {
-        return $this->fetchColumns($this->prepareSQL($entity, $query), array_search($field, array_values($entity::$_table_attributes)));
+        return $this->fetchColumns(
+            $this->prepareSQL($entity, $query),
+            array_search($field, array_values($entity::$_table_attributes), true)
+        );
     }
 
     /**
@@ -83,9 +86,9 @@ class Database implements DatabaseInterface
     public function count($entity, QueryInterface $query)
     {
         // Modify query SQL and add counting
-        $result = $this->fetch('SELECT Count(*) as __Count FROM (' . $this->prepareSQL($entity, $query) . ') as __table');
+        $result = $this->fetchArray('SELECT Count(*) as __Count FROM (' . $this->prepareSQL($entity, $query) . ') as __table');
 
-        return isset($result[0]) ? (int)$result[0]['__Count'] : 0;
+        return array_key_exists(0, $result) ? (int)$result[0]['__Count'] : 0;
     }
 
     /**
@@ -102,8 +105,8 @@ class Database implements DatabaseInterface
     /**
      * Convert QueryInterface into SQL statement.
      *
-     * @param string Entity identifier
-     * @param QueryInterface Query object
+     * @param string $entity Entity identifier
+     * @param QueryInterface $query Query object
      *
      * @return string SQL statement
      */
@@ -115,14 +118,9 @@ class Database implements DatabaseInterface
     /**
      * {@inheritdoc}
      */
-    public function fetchArray(string $sql, string $className = null) : array
+    public function fetchArray(string $sql) : array
     {
-        // Perform database query
-        if ($className === null) { // Return array
-            return $this->driver->query($sql)->fetchAll(\PDO::FETCH_ASSOC);
-        } else { // Create object of passed class name
-            return $this->driver->query($sql)->fetchAll(\PDO::FETCH_CLASS, $className);
-        }
+        return $this->driver->query($sql)->fetchAll(\PDO::FETCH_ASSOC);
     }
 
     /**
@@ -130,14 +128,13 @@ class Database implements DatabaseInterface
      */
     public function fetchObjects(string $sql, string $className) : array
     {
-        return $this->createEntities(
-            $this->fetchArray($sql),
-            $className::$_primary,
-            $className,
-            []
-            //$query->join,
-            //array_merge($query->own_virtual_fields, $query->virtual_fields)
-        );
+        $grouped = [];
+        $primaryField = $className::$_primary;
+        foreach ($this->driver->query($sql)->fetchAll(\PDO::FETCH_CLASS, $className) as $instance) {
+            $grouped[$instance->$primaryField] = $instance;
+        }
+
+        return $grouped;
     }
 
     /**
@@ -146,6 +143,19 @@ class Database implements DatabaseInterface
     public function fetchColumns(string $sql, int $columnIndex) : array
     {
         return $this->driver->query($sql)->fetchAll(\PDO::FETCH_COLUMN, $columnIndex);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function fetchObjectsWithJoin(string $sql, string $className, array $joins) : array
+    {
+        return $this->createEntities(
+            $this->fetchArray($sql),
+            $className::$_primary,
+            $className,
+            $joins
+        );
     }
 
     /**
