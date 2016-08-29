@@ -47,35 +47,6 @@ class Database implements DatabaseInterface
     }
 
     /**
-     * @deprecated Use self::fetchArray()
-     */
-    public function fetch(string $sql)
-    {
-        return $this->fetchArray($sql);
-    }
-
-    /**
-     * Special accelerated function to retrieve db record fields instead of objects
-     * TODO: Change to be independent of query and class name, just SQL, this SQL
-     * should only have one column in SELECT part and then we do not need parameter
-     * for this as we can always take 0.
-     *
-     * @param string $entity Entity identifier
-     * @param QueryInterface Query object
-     * @param string $field Entity field identifier
-     *
-     * @return array Collection of rows with field value
-     * @deprecated Use self::fetchColumns
-     */
-    public function fetchColumn($entity, QueryInterface $query, $field)
-    {
-        return $this->fetchColumns(
-            $this->prepareSQL($entity, $query),
-            array_search($field, array_values($entity::$_table_attributes), true)
-        );
-    }
-
-    /**
      * Count resulting rows.
      *
      * @param string Entity identifier
@@ -140,8 +111,10 @@ class Database implements DatabaseInterface
     /**
      * {@inheritdoc}
      */
-    public function fetchColumns(string $sql, int $columnIndex) : array
+    public function fetchColumn(string $sql, string $className, string $fieldName) : array
     {
+        $columnIndex = array_search($fieldName, array_values($className::$_table_attributes), true);
+
         return $this->driver->query($sql)->fetchAll(\PDO::FETCH_COLUMN, $columnIndex);
     }
 

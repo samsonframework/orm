@@ -48,7 +48,12 @@ class DatabaseTest extends TestCase
 
         $this->driver->method('query')->willReturn($stmt);
 
-        static::assertEquals($data, $this->database->fetchColumns('SELECT column1, column2 FROM `table`', 1));
+        static::assertEquals($data, $this->database->fetchColumn(
+                'SELECT column1, column2 FROM `table`',
+                TestEntity::class,
+                'testField'
+            )
+        );
     }
 
     public function testFetchArray()
