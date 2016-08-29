@@ -3,7 +3,10 @@
  * Created by Vitaly Iegorov <egorov@samsonos.com>.
  * on 29.08.16 at 10:01
  */
+namespace samsonframework\orm\tests;
+
 use PHPUnit\Framework\TestCase;
+use samsonframework\orm\DatabaseInterface;
 
 /**
  * Class DatabaseTest.
@@ -12,5 +15,16 @@ use PHPUnit\Framework\TestCase;
  */
 class DatabaseTest extends TestCase
 {
-    public function test
+    /** @var DatabaseInterface */
+    protected $database;
+
+    public function setUp()
+    {
+        $this->database = new \samsonframework\orm\Database();
+    }
+
+    public function testConnect()
+    {
+
+    }
 }

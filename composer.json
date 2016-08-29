@@ -26,6 +26,11 @@
       "samsonframework\\orm\\": "src/"
     }
   },
+  "autoload-dev": {
+    "psr-4": {
+      "samsonframework\\orm\\tests\\": "tests/"
+    }
+  },
   "config":{
     "github-protocols":["https"]
   },
