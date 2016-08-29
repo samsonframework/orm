@@ -13,7 +13,7 @@ namespace samsonframework\orm;
 class QueryToSQL
 {
     /**
-     * Get selected fields select statement.
+     * Build selected fields SELECT statement part.
      *
      * @param string $tableName
      * @param array  $selectedFields
@@ -30,16 +30,39 @@ class QueryToSQL
         return implode(', ', $select);
     }
 
+    /**
+     * Build grouping statement.
+     *
+     * @param array $columnNames Column names collection
+     *
+     * @return string Grouping statement
+     */
     protected function buildGroupStatement(array $columnNames) : string
     {
         return 'GROUP BY ' . implode(', ', $columnNames);
     }
 
+    /**
+     * Build ordering statement.
+     *
+     * @param array  $columnName Ordering column name
+     * @param string $order Sorting order
+     *
+     * @return string Ordering statement
+     */
     protected function buildOrderStatement(array $columnName, string $order = 'ASC') : string
     {
         return 'ORDER BY ' . $columnName . ' ' . $order;
     }
 
+    /**
+     * Build limitation statement.
+     *
+     * @param int $rows Rows amount for limitation
+     * @param int $offset Rows offset
+     *
+     * @return string Limitation statement
+     */
     protected function buildLimitStatement(int $rows, int $offset = 0) : string
     {
         return 'LIMIT ' . $offset . ', ' . $rows;
@@ -52,10 +75,8 @@ class QueryToSQL
      * @param QueryInterface $query Query with parameters
      * @return string SQL string
      */
-    protected function prepareSQL(QueryInterface $query)
+    protected function prepareSQL(QueryInterface $query, TableMetadata $metadata)
     {
-        $metadata = new TableMetadata();
-
         $selectSQL = 'SELECT '."\n".$this->buildSelectStatement($metadata->tableName, $query->selectedFields);
 
         // Add join table selected fields
@@ -95,15 +116,15 @@ class QueryToSQL
         return $selectSQL;
     }
 
-    protected function buildWhereStatement(ConditionInterface $condition, $className) : string
+    protected function buildWhereStatement(ConditionInterface $condition, TableMetadata $metadata) : string
     {
         $conditions = [];
 
         foreach ($condition as $argument) {
             if ($argument instanceof ConditionInterface) {
-                $conditions[] = $this->buildWhereStatement($argument, $className);
+                $conditions[] = $this->buildWhereStatement($argument, $metadata);
             } else {
-                $conditions[] = $this->parseCondition($className, $argument);
+                $conditions[] = $this->parseCondition($argument, $metadata);
             }
         }
 
@@ -124,7 +145,7 @@ class QueryToSQL
      * @return string Возвращает разпознанную строку с условием для MySQL
      * @throws \InvalidArgumentException
      */
-    protected function parseCondition(TableMetadata $metadata, Argument $argument)
+    protected function parseCondition(Argument $argument, TableMetadata $metadata)
     {
         $columnName = $metadata->getTableColumnName($argument->field);
         $columnType = $metadata->getTableColumnType($columnName);
