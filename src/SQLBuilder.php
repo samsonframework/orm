@@ -119,10 +119,11 @@ class SQLBuilder
     /**
      * Build where statement.
      *
-     * @param TableMetadata      $metadata
-     * @param Condition $condition
+     * @param TableMetadata $metadata
+     * @param Condition     $condition
      *
      * @return string Limitation statement
+     * @throws \InvalidArgumentException
      *
      */
     public function buildWhereStatement(TableMetadata $metadata, Condition $condition) : string
@@ -133,7 +134,7 @@ class SQLBuilder
             if ($argument instanceof ConditionInterface) {
                 $conditions[] = $this->buildWhereStatement($metadata, $argument);
             } else {
-                $conditions[] = $this->parseCondition($argument, $metadata);
+                $conditions[] = $this->buildArgumentCondition($argument, $metadata);
             }
         }
 
@@ -203,22 +204,16 @@ class SQLBuilder
             : $this->buildValue($columnType, $value, $relation);
     }
 
-    protected function buildArgumentCondition(string $columnName, string $columnType, string $relation, $value)
-    {
-        return $this->buildCondition(
-            $columnName,
-            $this->buildArgumentValue($value, $columnType, $relation)
-        );
-    }
-
     /**
-     * @param Argument      $argument
-     * @param TableMetadata $metadata
+     * Build argument condition.
      *
-     * @return string
-     * @throws \InvalidArgumentException
+     * @param Argument      $argument Condition argument
+     * @param TableMetadata $metadata Table metadata
+     *
+     * @return string Argument condition statement
+     * @throws \InvalidArgumentException If argument column does not exist
      */
-    protected function parseCondition(Argument $argument, TableMetadata $metadata)
+    protected function buildArgumentCondition(Argument $argument, TableMetadata $metadata)
     {
         switch ($argument->relation) {
             case ArgumentInterface::OWN:
@@ -229,8 +224,14 @@ class SQLBuilder
                 return $this->buildNullCondition($columnName, $argument->relation);
             default:
                 $columnName = $metadata->getTableColumnName($argument->field);
-                $columnType = $metadata->getTableColumnType($columnName);
-                return $this->buildArgumentCondition($columnName, $columnType, $argument->relation, $argument->value);
+                return $this->buildCondition(
+                    $columnName,
+                    $this->buildArgumentValue(
+                        $argument->value,
+                        $metadata->getTableColumnType($columnName),
+                        $argument->relation
+                    )
+                );
         }
     }
 }
