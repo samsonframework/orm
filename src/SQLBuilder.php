@@ -43,7 +43,7 @@ class SQLBuilder
         $sql = 'SELECT '.$this->innerBuildSelectStatement($metadata->tableName, $metadata->columns);
 
         foreach ($joinedMetadata as $joinMetadata) {
-            $sql .= "\n". $this->innerBuildSelectStatement($joinMetadata->tableName, $joinMetadata->columns);
+            $sql .= "\n". ','.$this->innerBuildSelectStatement($joinMetadata->tableName, $joinMetadata->columns);
         }
 
         return $sql;
@@ -61,7 +61,7 @@ class SQLBuilder
         $sql = 'FROM `'.$metadata->tableName.'`';
 
         foreach ($joinedMetadata as $joinMetadata) {
-            $sql .= "\n". '`'.$joinMetadata->tableName.'`';
+            $sql .= "\n". ',`'.$joinMetadata->tableName.'`';
         }
 
         return $sql;
@@ -70,13 +70,29 @@ class SQLBuilder
     /**
      * Build grouping statement.
      *
-     * @param array $columnNames Column names collection
+     * @param TableMetadata[] $tablesMetadata
+     * @param array           $columnNames Column names collection
      *
      * @return string Grouping statement
      */
-    public function buildGroupStatement(array $columnNames) : string
+    public function buildGroupStatement(array $tablesMetadata, array $columnNames) : string
     {
-        return 'GROUP BY ' . implode(', ', $columnNames);
+        $grouping = [];
+        foreach ($tablesMetadata as $metadata) {
+            foreach ($columnNames as $columnName) {
+                try {
+                    $grouping[] = '`'.$metadata->tableName.'`.'.$metadata->getTableColumnName($columnName);
+                } catch (\InvalidArgumentException $e) {
+                    // Do nothing
+                }
+            }
+        }
+
+        if (!count($grouping)) {
+            throw new \InvalidArgumentException('Cannot group by specified columns');
+        }
+
+        return 'GROUP BY ' . implode(', ', $grouping);
     }
 
     /**

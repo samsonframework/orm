@@ -55,7 +55,7 @@ class SQLBuilderTest extends TestCase
     {
         static::assertEquals(
             'SELECT `testTable`.`testColumn`, `testTable`.`testColumn2`'.
-            "\n".'`testTable2`.`testColumn3`, `testTable2`.`testColumn4`',
+            "\n".',`testTable2`.`testColumn3`, `testTable2`.`testColumn4`',
             $this->sqlBuilder->buildSelectStatement($this->metadata, $this->joinedMetadata)
         );
     }
@@ -72,8 +72,32 @@ class SQLBuilderTest extends TestCase
     {
         static::assertEquals(
             'FROM `testTable`'.
-            "\n".'`testTable2`',
+            "\n".',`testTable2`',
             $this->sqlBuilder->buildFromStatement($this->metadata, $this->joinedMetadata)
+        );
+    }
+
+    public function testBuildGroupStatement()
+    {
+        static::assertEquals(
+            'GROUP BY `testTable`.testColumn, `testTable2`.testColumn3',
+            $this->sqlBuilder->buildGroupStatement(
+                array_merge([$this->metadata], $this->joinedMetadata),
+                ['testColumn', 'testColumn3']
+            )
+        );
+    }
+
+    public function testBuildGroupStatementWithException()
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        static::assertEquals(
+            'GROUP BY `testTable`.testColumn, `testTable2`.testColumn3',
+            $this->sqlBuilder->buildGroupStatement(
+                array_merge([$this->metadata], $this->joinedMetadata),
+                ['testColumn99', 'testColumn98']
+            )
         );
     }
 }

@@ -15,22 +15,22 @@ class TableMetadata
     public $className;
 
     /** @var array Collection of database table columns */
-    public $columns;
+    public $columns = [];
 
     /** @var array Collection of database table columns types */
-    public $columnTypes;
+    public $columnTypes = [];
 
     /** @var array Collection of database table columns aliases */
-    public $columnAliases;
+    public $columnAliases = [];
 
     /** @var string Database table primary field */
     public $primaryField;
 
     /** @var array Collection of database UNIQUE table columns */
-    public $uniqueColumns;
+    public $uniqueColumns = [];
 
     /** @var array Collection of database INDEXED table columns */
-    public $indexColumns;
+    public $indexColumns = [];
 
     /**
      * Get table column name by column name or alias.
