@@ -112,4 +112,20 @@ class SQLBuilderTest extends TestCase
             )
         );
     }
+
+    public function testBuildLimitStatement()
+    {
+        static::assertEquals(
+            'LIMIT 0, 5',
+            $this->sqlBuilder->buildLimitStatement(5)
+        );
+    }
+
+    public function testBuildLimitStatementWithOffset()
+    {
+        static::assertEquals(
+            'LIMIT 2, 5',
+            $this->sqlBuilder->buildLimitStatement(5, 2)
+        );
+    }
 }
