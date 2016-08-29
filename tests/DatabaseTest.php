@@ -8,6 +8,7 @@ namespace samsonframework\orm\tests;
 use PHPUnit\Framework\TestCase;
 use samsonframework\orm\Database;
 use samsonframework\orm\DatabaseInterface;
+use samsonframework\orm\TableMetadata;
 
 /**
  * Class DatabaseTest.
@@ -48,12 +49,7 @@ class DatabaseTest extends TestCase
 
         $this->driver->method('query')->willReturn($stmt);
 
-        static::assertEquals($data, $this->database->fetchColumn(
-                'SELECT column1, column2 FROM `table`',
-                TestEntity::class,
-                'testField'
-            )
-        );
+        static::assertEquals($data, $this->database->fetchColumn('SELECT column1, column2 FROM `table`', 1));
     }
 
     public function testFetchObjects()
@@ -73,7 +69,10 @@ class DatabaseTest extends TestCase
 
         $this->driver->method('query')->willReturn($stmt);
 
-        $objects = $this->database->fetchObjects('SELECT column1, column2 FROM `table`', TestEntity::class);
+        $objects = $this->database->fetchObjects(
+            'SELECT column1, column2 FROM `table`',
+            TestEntity::class
+        );
 
         // Always return array
         static::assertTrue(is_array($objects));
@@ -130,10 +129,20 @@ class DatabaseTest extends TestCase
 
         $this->driver->method('query')->willReturn($stmt);
 
+        $metadata = new TableMetadata();
+        $metadata->className = TestEntity::class;
+        $metadata->primaryField = 'primary';
+        $metadata->columns = ['testField'];
+
+        $joinedMetadata = new TableMetadata();
+        $joinedMetadata->className = JoinTestEntity::class;
+        $joinedMetadata->primaryField = 'primary2';
+        $joinedMetadata->columns = ['testField2'];
+
         return $this->database->fetchObjectsWithJoin(
             'SELECT column1, column2 FROM `table`',
-            TestEntity::class,
-            [JoinTestEntity::class]
+            $metadata,
+            [$joinedMetadata]
         );
     }
 

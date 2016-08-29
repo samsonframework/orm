@@ -11,6 +11,9 @@ class TableMetadata
     /** @var string Database table name */
     public $tableName;
 
+    /** @var string Entity class name */
+    public $className;
+
     /** @var array Collection of database table columns */
     public $columns;
 

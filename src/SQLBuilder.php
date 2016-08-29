@@ -12,6 +12,7 @@ namespace samsonframework\orm;
  */
 class SQLBuilder
 {
+
     /**
      * Build selected fields SELECT statement part.
      *
@@ -75,7 +76,7 @@ class SQLBuilder
      * @param QueryInterface $query Query with parameters
      * @return string SQL string
      */
-    protected function prepareSQL(QueryInterface $query, TableMetadata $metadata)
+    public function build(QueryInterface $query, TableMetadata $metadata)
     {
         $selectSQL = 'SELECT '."\n".$this->buildSelectStatement($metadata->tableName, $query->selectedFields);
 

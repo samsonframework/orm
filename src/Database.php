@@ -70,19 +70,6 @@ class Database implements DatabaseInterface
     }
 
     /**
-     * Convert QueryInterface into SQL statement.
-     *
-     * @param string $entity Entity identifier
-     * @param QueryInterface $query Query object
-     *
-     * @return string SQL statement
-     */
-    protected function prepareSQL($entity, QueryInterface $query)
-    {
-
-    }
-
-    /**
      * {@inheritdoc}
      */
     public function fetchArray(string $sql) : array
@@ -115,13 +102,12 @@ class Database implements DatabaseInterface
     /**
      * {@inheritdoc}
      */
-    public function fetchObjectsWithJoin(string $sql, string $className, array $joins) : array
+    public function fetchObjectsWithJoin(string $sql, TableMetadata $metadata, array $joinedMetadata) : array
     {
         return $this->createEntities(
             $this->fetchArray($sql),
-            $className::$_primary,
-            $className,
-            $joins
+            $metadata,
+            $joinedMetadata
         );
     }
 
@@ -178,41 +164,41 @@ class Database implements DatabaseInterface
     /**
      * Create entity instances and its joined entities.
      *
-     * @param array  $rows
-     * @param string $primaryField
-     * @param string $className
-     * @param array  $joinedClassNames
+     * @param array           $rows
+     * @param TableMetadata   $metadata
+     * @param TableMetadata[] $joinedMetadata
      *
      * @return array
+     * @throws \InvalidArgumentException
      */
-    protected function createEntities(array $rows, string $primaryField, string $className, array $joinedClassNames)
+    protected function createEntities(array $rows, TableMetadata $metadata, array $joinedMetadata)
     {
         $objects = [];
 
         /** @var array $entityRows Iterate entity rows */
-        foreach ($this->groupResults($rows, $primaryField) as $primaryValue => $entityRows) {
+        foreach ($this->groupResults($rows, $metadata->primaryField) as $primaryValue => $entityRows) {
             // Create entity instance
-            $instance = $objects[$primaryValue] = new $className($this);
+            $instance = $objects[$primaryValue] = new $metadata->className($this);
 
             // TODO: $attributes argument should be filled with selected fields?
-            $this->fillEntityFieldValues($instance, $className::$_attributes, $entityRows[0]);
+            $this->fillEntityFieldValues($instance, $metadata->columns, $entityRows[0]);
 
             // Iterate inner rows for nested entities creation
             foreach ($entityRows as $row) {
                 // Iterate all joined entities
-                foreach ($joinedClassNames as $joinedClassName) {
-                    if (array_key_exists($joinedClassName::$_primary, $row)) {
+                foreach ($joinedMetadata as $joinMetadata) {
+                    if (array_key_exists($joinMetadata->primaryField, $row)) {
                         // Create joined instance and add to parent instance
-                        $joinedInstance = new $joinedClassName($this);
+                        $joinedInstance = new $joinMetadata->className($this);
 
                         // TODO: We need to change className retrieval
-                        $this->fillEntityFieldValues($joinedInstance, $joinedClassName::$_attributes, $row);
+                        $this->fillEntityFieldValues($joinedInstance, $joinMetadata->columns, $row);
 
                         // Store joined instance by primary field value
-                        $instance->joined[$joinedClassName][$row[$joinedClassName::$_primary]] = $joinedInstance;
+                        $instance->joined[$joinMetadata->className][$row[$joinMetadata->primaryField]] = $joinedInstance;
                     } else {
                         throw new \InvalidArgumentException(
-                            'Cannot join '.$joinedClassName.' - primary field '.$joinedClassName::$_primary.' not found'
+                            'Cannot join '.$joinMetadata->className.' - primary field '.$joinMetadata->primaryField.' not found'
                         );
                     }
                 }
