@@ -120,12 +120,12 @@ class SQLBuilder
      * Build where statement.
      *
      * @param TableMetadata      $metadata
-     * @param ConditionInterface $condition
+     * @param Condition $condition
      *
      * @return string Limitation statement
      *
      */
-    public function buildWhereStatement(TableMetadata $metadata, ConditionInterface $condition) : string
+    public function buildWhereStatement(TableMetadata $metadata, Condition $condition) : string
     {
         $conditions = [];
 
@@ -212,13 +212,10 @@ class SQLBuilder
     }
 
     /**
-     * "Правильно" разпознать переданный аргумент условия запроса к БД
+     * @param Argument      $argument
+     * @param TableMetadata $metadata
      *
-     * @param string   $class_name Схема сущности БД для которой данные условия
-     * @param Argument $argument   Аругемнт условия для преобразования
-     *
-     * @return string Возвращает разпознанную строку с условием для MySQL
-     * @throws \InvalidArgumentException
+     * @return string
      */
     protected function parseCondition(Argument $argument, TableMetadata $metadata)
     {
