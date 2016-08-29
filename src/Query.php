@@ -119,24 +119,6 @@ class Query extends QueryHandler implements QueryInterface
     }
 
     /**
-     * Get correct query condition depending on entity field name.
-     * If base entity has field with this name - use base entity condition
-     * group, otherwise default condition group.
-     *
-     * @param string $fieldName Entity field name
-     * @return Condition Correct query condition group
-     */
-    protected function &conditionGroup($fieldName)
-    {
-        if (property_exists($this->className, $fieldName)) {
-            // Add this condition to base entity condition group
-            return $this->own_condition;
-        }
-
-        return $this->condition;
-    }
-
-    /**
      * {@inheritdoc}
      */
     public function whereCondition(ConditionInterface $condition) : QueryInterface
@@ -157,7 +139,7 @@ class Query extends QueryHandler implements QueryInterface
             if (!isset($fieldValue)) {
                 $relation = ArgumentInterface::ISNULL;
                 $fieldValue = '';
-            } elseif (is_array($fieldValue) && !sizeof($fieldValue)) {
+            } elseif (is_array($fieldValue) && !count($fieldValue)) {
                 // TODO: We consider empty array passed as condition value as NULL, illegal condition
                 $relation = ArgumentInterface::EQUAL;
                 $fieldName = '1';
@@ -165,7 +147,7 @@ class Query extends QueryHandler implements QueryInterface
             }
 
             // Add condition argument
-            $this->conditionGroup($fieldName)->add($fieldName, $fieldValue, $relation);
+            $this->condition->add($fieldName, $fieldValue, $relation);
         } else {
             throw new \InvalidArgumentException('You can only pass string as first argument');
         }
@@ -178,7 +160,6 @@ class Query extends QueryHandler implements QueryInterface
      */
     public function join(string $entityName)
     {
-        // TODO: We need to implement this logic
         $this->joins[$entityName] = [];
 
         // Chaining
