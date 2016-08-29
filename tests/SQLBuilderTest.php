@@ -19,44 +19,61 @@ class SQLBuilderTest extends TestCase
     /** @var SQLBuilder */
     protected $sqlBuilder;
 
+    /** @var TableMetadata */
+    protected $metadata;
+
+    /** @var TableMetadata[] */
+    protected $joinedMetadata;
+
     public function setUp()
     {
         $this->sqlBuilder = new SQLBuilder();
+
+        $this->metadata = new TableMetadata();
+        $this->metadata->tableName = 'testTable';
+        $this->metadata->className = TestEntity::class;
+        $this->metadata->columns[] = 'testColumn';
+        $this->metadata->columns[] = 'testColumn2';
+
+        $this->joinedMetadata = [];
+        $this->joinedMetadata[0] = new TableMetadata();
+        $this->joinedMetadata[0]->tableName = 'testTable2';
+        $this->joinedMetadata[0]->className = JoinTestEntity::class;
+        $this->joinedMetadata[0]->columns[] = 'testColumn3';
+        $this->joinedMetadata[0]->columns[] = 'testColumn4';
     }
 
     public function testBuildSelectStatement()
     {
-        $metadata = new TableMetadata();
-        $metadata->tableName = 'testTable';
-        $metadata->className = TestEntity::class;
-        $metadata->columns[] = 'testColumn';
-        $metadata->columns[] = 'testColumn2';
-
         static::assertEquals(
             'SELECT `testTable`.`testColumn`, `testTable`.`testColumn2`',
-            $this->sqlBuilder->buildSelectStatement($metadata)
+            $this->sqlBuilder->buildSelectStatement($this->metadata)
         );
     }
 
     public function testBuildSelectStatementWithJoins()
     {
-        $metadata = new TableMetadata();
-        $metadata->tableName = 'testTable';
-        $metadata->className = TestEntity::class;
-        $metadata->columns[] = 'testColumn';
-        $metadata->columns[] = 'testColumn2';
-
-        $joinedMetadata = [];
-        $joinedMetadata[0] = new TableMetadata();
-        $joinedMetadata[0]->tableName = 'testTable2';
-        $joinedMetadata[0]->className = JoinTestEntity::class;
-        $joinedMetadata[0]->columns[] = 'testColumn3';
-        $joinedMetadata[0]->columns[] = 'testColumn4';
-
         static::assertEquals(
             'SELECT `testTable`.`testColumn`, `testTable`.`testColumn2`'.
             "\n".'`testTable2`.`testColumn3`, `testTable2`.`testColumn4`',
-            $this->sqlBuilder->buildSelectStatement($metadata, $joinedMetadata)
+            $this->sqlBuilder->buildSelectStatement($this->metadata, $this->joinedMetadata)
+        );
+    }
+
+    public function testBuildFromStatement()
+    {
+        static::assertEquals(
+            'FROM `testTable`',
+            $this->sqlBuilder->buildFromStatement($this->metadata)
+        );
+    }
+
+    public function testBuildFromStatementWithJoins()
+    {
+        static::assertEquals(
+            'FROM `testTable`'.
+            "\n".'`testTable2`',
+            $this->sqlBuilder->buildFromStatement($this->metadata, $this->joinedMetadata)
         );
     }
 }
