@@ -47,17 +47,12 @@ class Database implements DatabaseInterface
     }
 
     /**
-     * Count resulting rows.
-     *
-     * @param string Entity identifier
-     * @param QueryInterface Query object
-     *
-     * @return int Amount of rows
+     * {@inheritdoc}
      */
-    public function count($entity, QueryInterface $query)
+    public function count(string $sql) : int
     {
         // Modify query SQL and add counting
-        $result = $this->fetchArray('SELECT Count(*) as __Count FROM (' . $this->prepareSQL($entity, $query) . ') as __table');
+        $result = $this->fetchArray('SELECT Count(*) as __Count FROM (' . $sql . ') as __table');
 
         return array_key_exists(0, $result) ? (int)$result[0]['__Count'] : 0;
     }
