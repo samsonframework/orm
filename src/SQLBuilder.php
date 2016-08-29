@@ -195,7 +195,8 @@ class SQLBuilder
     /**
      * Build array with numeric values statement.
      *
-     * @param array $value Array with numeric values
+     * @param array  $value Array with numeric values
+     * @param string $relation Table column relation to value
      *
      * @return string Array with numeric values statement
      */
@@ -208,6 +209,7 @@ class SQLBuilder
      * Build array string value statement.
      *
      * @param array $value Array with string values
+     * @param string $relation Table column relation to value
      *
      * @return string Array with string values statement
      */
