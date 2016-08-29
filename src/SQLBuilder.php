@@ -19,9 +19,9 @@ class SQLBuilder
      * @param string $tableName
      * @param array  $selectedFields
      *
-     * @return string
+     * @return string SELECT statement part
      */
-    protected function buildSelectStatement(string $tableName, array $selectedFields) : string
+    protected function innerBuildSelectStatement(string $tableName, array $selectedFields) : string
     {
         $select = [];
         foreach ($selectedFields as $field) {
@@ -32,13 +32,31 @@ class SQLBuilder
     }
 
     /**
+     * Build selected fields SELECT statement part.
+     *
+     * @param TableMetadata $metadata
+     * @param TableMetadata[] $joinedMetadata
+     * @return string SELECT statement
+     */
+    public function buildSelectStatement(TableMetadata $metadata, array $joinedMetadata = []) : string
+    {
+        $sql = 'SELECT '.$this->innerBuildSelectStatement($metadata->tableName, $metadata->columns);
+
+        foreach ($joinedMetadata as $joinMetadata) {
+            $sql .= "\n". $this->innerBuildSelectStatement($joinMetadata->tableName, $joinMetadata->columns);
+        }
+
+        return $sql;
+    }
+
+    /**
      * Build grouping statement.
      *
      * @param array $columnNames Column names collection
      *
      * @return string Grouping statement
      */
-    protected function buildGroupStatement(array $columnNames) : string
+    public function buildGroupStatement(array $columnNames) : string
     {
         return 'GROUP BY ' . implode(', ', $columnNames);
     }
@@ -46,12 +64,12 @@ class SQLBuilder
     /**
      * Build ordering statement.
      *
-     * @param array  $columnName Ordering column name
+     * @param string  $columnName Ordering column name
      * @param string $order Sorting order
      *
      * @return string Ordering statement
      */
-    protected function buildOrderStatement(array $columnName, string $order = 'ASC') : string
+    public function buildOrderStatement(string $columnName, string $order = 'ASC') : string
     {
         return 'ORDER BY ' . $columnName . ' ' . $order;
     }
@@ -64,60 +82,21 @@ class SQLBuilder
      *
      * @return string Limitation statement
      */
-    protected function buildLimitStatement(int $rows, int $offset = 0) : string
+    public function buildLimitStatement(int $rows, int $offset = 0) : string
     {
         return 'LIMIT ' . $offset . ', ' . $rows;
     }
 
     /**
-     * Create SQL request
+     * Build where statement.
      *
-     * @param string $class_name Classname for request creating
-     * @param QueryInterface $query Query with parameters
-     * @return string SQL string
+     * @param ConditionInterface $condition
+     * @param TableMetadata      $metadata
+     *
+     * @return string Limitation statement
+     *
      */
-    public function build(QueryInterface $query, TableMetadata $metadata)
-    {
-        $selectSQL = 'SELECT '."\n".$this->buildSelectStatement($metadata->tableName, $query->selectedFields);
-
-        // Add join table selected fields
-        foreach ($query->joins as $joinTableName => $joinFields) {
-            $selectSQL .= ', '."\n".$this->buildSelectStatement($joinTableName, $joinFields);
-        }
-
-        // Add virtual fields for selection
-        if (count($query->virtualFields)) {
-            $selectSQL .= ', ' . "\n" . $this->buildSelectStatement($metadata->tableName, $query->virtualFields);
-        }
-
-        // From part
-        $selectSQL .= "\n" . 'FROM ' . $metadata->tableName;
-
-        // Add join table selected fields
-        foreach ($query->joins as $joinTableName => $joinFields) {
-            $selectSQL .= 'LEFT JOIN `'.$joinTableName.'` ON ';
-        }
-
-        if ($query->own_condition->size()) {
-            $selectSQL .= "\n" . ' WHERE (' . $this->buildWhereStatement($query->own_condition, $class_name) . ')';
-        }
-
-        if (count($query->own_group)) {
-            $selectSQL .= "\n" . $this->buildGroupStatement($query->own_group);
-        }
-
-        if (count($query->own_order)) {
-            $selectSQL .= "\n" . $this->buildOrderStatement($query->own_order[0], $query->own_order[1]);
-        }
-
-        if (count($query->own_limit)) {
-            $selectSQL .= "\n" . $this->buildLimitStatement($query->own_limit[0], $query->own_limit[1]);
-        }
-
-        return $selectSQL;
-    }
-
-    protected function buildWhereStatement(ConditionInterface $condition, TableMetadata $metadata) : string
+    public function buildWhereStatement(ConditionInterface $condition, TableMetadata $metadata) : string
     {
         $conditions = [];
 

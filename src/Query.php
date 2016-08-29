@@ -13,6 +13,9 @@ class Query extends QueryHandler implements QueryInterface
     /** @var string Database table className */
     protected $className;
 
+    /** @var TableMetadata */
+    protected $metadata;
+
     /** @var array Collection of parent table selected fields */
     protected $select = [];
 
@@ -25,7 +28,7 @@ class Query extends QueryHandler implements QueryInterface
     /** @var array Collection of query results limitations */
     protected $limitation = [];
 
-    /** @var array Collection of joined entities */
+    /** @var TableMetadata[] Collection of joined entities */
     protected $joins = [];
 
     /** @var Condition Query entity condition group */
@@ -36,6 +39,22 @@ class Query extends QueryHandler implements QueryInterface
 
     /** @var SQLBuilder SQL builder */
     protected $sqlBuilder;
+
+    /**
+     * Build SQL statement from this query.
+     *
+     * @return string SQL statement
+     */
+    protected function buildSQL() : string
+    {
+        $sql = $this->sqlBuilder->buildSelectStatement($this->metadata, $this->joins);
+        $sql .= $this->sqlBuilder->buildWhereStatement($this->condition, $this->metadata);
+        $sql .= $this->sqlBuilder->buildGroupStatement($this->grouping);
+        $sql .= $this->sqlBuilder->buildOrderStatement($this->sorting[0], $this->sorting[1]);
+        $sql .= $this->sqlBuilder->buildLimitStatement($this->limitation[0], $this->limitation[1]);
+
+        return $sql;
+    }
 
     /**
      * Query constructor.
@@ -51,15 +70,13 @@ class Query extends QueryHandler implements QueryInterface
     }
 
     /**
-     * Reset all query parameters
-     * @return self Chaining
+     * {@inheritdoc}
      */
     public function flush()
     {
         $this->grouping = [];
         $this->limitation = [];
         $this->sorting = [];
-
         $this->condition = new Condition();
 
         return $this;
