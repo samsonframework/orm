@@ -1,12 +1,10 @@
-<?php
+<?php declare(strict_types=1);
 namespace samsonframework\orm;
-
-use samsonframework\orm\ArgumentInterface;
 
 /**
  * Database query condition argument.
+ *
  * @author Vitaly Iegorov <egorov@samsonos.com>
- * @version 2.0
  */
 class Argument implements ArgumentInterface
 {
@@ -16,7 +14,7 @@ class Argument implements ArgumentInterface
     /** @var string Argument field value */
     public $value;
 
-    /** @var dbRelation Argument relation between field and its value */
+    /** @var string Argument relation between field and its value */
     public $relation = ArgumentInterface::EQUAL;
 
     /**
