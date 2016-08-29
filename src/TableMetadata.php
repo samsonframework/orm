@@ -75,4 +75,17 @@ class TableMetadata
             'Column ' . $columnNameOrAlias . ' type is not defined table ' . $this->tableName
         );
     }
+
+    /**
+     * Get table column index by column name or alias.
+     *
+     * @param string $columnNameOrAlias Table column name or alias
+     *
+     * @return int Table column index
+     * @throws \InvalidArgumentException
+     */
+    public function getTableColumnIndex(string $columnNameOrAlias) : int
+    {
+        return array_search($this->getTableColumnName($columnNameOrAlias), $this->columns, true);
+    }
 }

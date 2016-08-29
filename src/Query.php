@@ -1,8 +1,6 @@
 <?php declare(strict_types=1);
 namespace samsonframework\orm;
 
-use samsonframework\orm\exception\EntityNotFound;
-
 /**
  * Database query builder.
  *
@@ -72,22 +70,9 @@ class Query extends QueryHandler implements QueryInterface
     /**
      * {@inheritdoc}
      */
-    public function flush()
-    {
-        $this->grouping = [];
-        $this->limitation = [];
-        $this->sorting = [];
-        $this->condition = new Condition();
-
-        return $this;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
     public function exec() : array
     {
-        return $this->database->fetchObjects($this->sqlBuilder->build(), $this->className);
+        return $this->database->fetchObjects($this->buildSQL(), $this->className);
     }
 
     /**
@@ -95,7 +80,7 @@ class Query extends QueryHandler implements QueryInterface
      */
     public function count() : int
     {
-        return $this->database->count($this->sqlBuilder->build());
+        return $this->database->count($this->buildSQL());
     }
 
     /**
@@ -113,24 +98,21 @@ class Query extends QueryHandler implements QueryInterface
      */
     public function fields(string $fieldName) : array
     {
-        // Get column index by field name
-        $columnIndex = array_search($fieldName, array_values($className::$_table_attributes), true);
-
         // Return bool or collection
-        return $this->database->fetchColumn($this->sqlBuilder->build(), $columnIndex);
+        return $this->database->fetchColumn($this->buildSQL(), $this->metadata->getTableColumnIndex($fieldName));
     }
 
     /**
      * {@inheritdoc}
      */
-    public function entity(string $entity) : QueryInterface
+    public function entity(TableMetadata $metadata) : QueryInterface
     {
-        if (class_exists($entity)) {
-            $this->flush();
-            $this->className = $entity;
-        } else {
-            throw new EntityNotFound('['.$entity.'] not found');
-        }
+        $this->grouping = [];
+        $this->limitation = [];
+        $this->sorting = [];
+        $this->condition = new Condition();
+        $this->metadata = $metadata;
+        $this->className = $metadata->className;
 
         return $this;
     }
