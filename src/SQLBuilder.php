@@ -68,16 +68,17 @@ class SQLBuilder
     }
 
     /**
-     * Build grouping statement.
+     * Try to build full column names with their tables
+     * from passed collections.
      *
-     * @param TableMetadata[] $tablesMetadata
-     * @param array           $columnNames Column names collection
+     * @param array $tablesMetadata Table metadata collection
+     * @param array $columnNames Table column names
      *
-     * @return string Grouping statement
+     * @return array Collection of full column names for query
      *
      * @throws \InvalidArgumentException If at least one passed column not found in passed metadata
      */
-    public function buildGroupStatement(array $tablesMetadata, array $columnNames) : string
+    protected function buildFullColumnNames(array $tablesMetadata, array $columnNames) : array
     {
         $grouping = [];
         foreach ($tablesMetadata as $metadata) {
@@ -95,20 +96,43 @@ class SQLBuilder
             throw new \InvalidArgumentException('Cannot group by specified columns');
         }
 
-        return 'GROUP BY ' . implode(', ', $grouping);
+        return $grouping;
+    }
+
+    /**
+     * Build grouping statement.
+     *
+     * @param TableMetadata[] $tablesMetadata
+     * @param array           $columnNames Column names collection
+     *
+     * @return string Grouping statement
+     *
+     * @throws \InvalidArgumentException If at least one passed column not found in passed metadata
+     */
+    public function buildGroupStatement(array $tablesMetadata, array $columnNames) : string
+    {
+        return 'GROUP BY ' . implode(', ', $this->buildFullColumnNames($tablesMetadata, $columnNames));
     }
 
     /**
      * Build ordering statement.
      *
-     * @param string  $columnName Ordering column name
-     * @param string $order Sorting order
+     * @param TableMetadata[] $tablesMetadata
+     * @param array           $columnNames Column names collection
+     * @param array $orders Collection of columns sorting order
      *
      * @return string Ordering statement
+     * @throws \InvalidArgumentException
      */
-    public function buildOrderStatement(string $columnName, string $order = 'ASC') : string
+    public function buildOrderStatement(array $tablesMetadata, array $columnNames, array $orders) : string
     {
-        return 'ORDER BY ' . $columnName . ' ' . $order;
+        $ordering = [];
+        $i = 0;
+        foreach ($this->buildFullColumnNames($tablesMetadata, $columnNames) as $columnName) {
+            $ordering[] = $columnName.' '. ($orders[$i++] ?? 'ASC');
+        }
+
+        return 'ORDER BY ' . implode(', ', $ordering);
     }
 
     /**

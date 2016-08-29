@@ -100,4 +100,16 @@ class SQLBuilderTest extends TestCase
             )
         );
     }
+
+    public function testBuildOrderStatement()
+    {
+        static::assertEquals(
+            'ORDER BY `testTable`.testColumn DESC, `testTable2`.testColumn3 ASC',
+            $this->sqlBuilder->buildOrderStatement(
+                array_merge([$this->metadata], $this->joinedMetadata),
+                ['testColumn', 'testColumn3'],
+                ['DESC']
+            )
+        );
+    }
 }
