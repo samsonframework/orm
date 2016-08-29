@@ -154,6 +154,16 @@ class Query extends QueryHandler implements QueryInterface
     /**
      * {@inheritdoc}
      */
+    public function select(string $tableName, string $fieldName)
+    {
+        $this->select[$tableName] = $fieldName;
+
+        return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function join(string $entityName)
     {
         $this->joins[$entityName] = [];
@@ -165,9 +175,9 @@ class Query extends QueryHandler implements QueryInterface
     /**
      * {@inheritdoc}
      */
-    public function groupBy(string $fieldName) : QueryInterface
+    public function groupBy(string $tableName, string $fieldName) : QueryInterface
     {
-        $this->grouping[] = $fieldName;
+        $this->grouping[$tableName] = $fieldName;
 
         // Chaining
         return $this;

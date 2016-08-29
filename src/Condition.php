@@ -61,9 +61,9 @@ class Condition implements ConditionInterface
      * Constructor
      * @param string $relation Relation type between arguments
      */
-    public function __construct($relation = null)
+    public function __construct($relation = ConditionInterface::CONJUNCTION)
     {
-        $this->relation = null !== $relation ? $relation : ConditionInterface::CONJUNCTION;
+        $this->relation = $relation;
     }
 
     /**

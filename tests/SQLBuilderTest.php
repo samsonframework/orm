@@ -6,6 +6,9 @@
 namespace samsonframework\orm\tests;
 
 use PHPUnit\Framework\TestCase;
+use samsonframework\orm\ArgumentInterface;
+use samsonframework\orm\Condition;
+use samsonframework\orm\ConditionInterface;
 use samsonframework\orm\SQLBuilder;
 use samsonframework\orm\TableMetadata;
 
@@ -34,6 +37,10 @@ class SQLBuilderTest extends TestCase
         $this->metadata->className = TestEntity::class;
         $this->metadata->columns[] = 'testColumn';
         $this->metadata->columns[] = 'testColumn2';
+        $this->metadata->columns[] = 'testColumn3';
+        $this->metadata->columnTypes['testColumn'] = 'int';
+        $this->metadata->columnTypes['testColumn2'] = 'varchar(25)';
+        $this->metadata->columnTypes['testColumn3'] = 'varchar(25)';
 
         $this->joinedMetadata = [];
         $this->joinedMetadata[0] = new TableMetadata();
@@ -47,7 +54,8 @@ class SQLBuilderTest extends TestCase
     {
         static::assertEquals(
             'SELECT `testTable`.`testColumn`, `testTable`.`testColumn2`',
-            $this->sqlBuilder->buildSelectStatement($this->metadata)
+            $this->sqlBuilder->buildSelectStatement(
+                ['testTable' => ['testColumn', 'testColumn2']])
         );
     }
 
@@ -55,8 +63,12 @@ class SQLBuilderTest extends TestCase
     {
         static::assertEquals(
             'SELECT `testTable`.`testColumn`, `testTable`.`testColumn2`'.
-            "\n".',`testTable2`.`testColumn3`, `testTable2`.`testColumn4`',
-            $this->sqlBuilder->buildSelectStatement($this->metadata, $this->joinedMetadata)
+            ', `testTable2`.`testColumn3`, `testTable2`.`testColumn4`',
+            $this->sqlBuilder->buildSelectStatement([
+                    'testTable' => ['testColumn', 'testColumn2'],
+                    'testTable2' => ['testColumn3', 'testColumn4']
+                ]
+            )
         );
     }
 
@@ -64,39 +76,24 @@ class SQLBuilderTest extends TestCase
     {
         static::assertEquals(
             'FROM `testTable`',
-            $this->sqlBuilder->buildFromStatement($this->metadata)
+            $this->sqlBuilder->buildFromStatement(['testTable'])
         );
     }
 
     public function testBuildFromStatementWithJoins()
     {
         static::assertEquals(
-            'FROM `testTable`'.
-            "\n".',`testTable2`',
-            $this->sqlBuilder->buildFromStatement($this->metadata, $this->joinedMetadata)
+            'FROM `testTable`, `testTable2`',
+            $this->sqlBuilder->buildFromStatement(['testTable', 'testTable2'])
         );
     }
 
     public function testBuildGroupStatement()
     {
         static::assertEquals(
-            'GROUP BY `testTable`.testColumn, `testTable2`.testColumn3',
+            'GROUP BY `testTable`.`testColumn`, `testTable2`.`testColumn3`',
             $this->sqlBuilder->buildGroupStatement(
-                array_merge([$this->metadata], $this->joinedMetadata),
-                ['testColumn', 'testColumn3']
-            )
-        );
-    }
-
-    public function testBuildGroupStatementWithException()
-    {
-        $this->expectException(\InvalidArgumentException::class);
-
-        static::assertEquals(
-            'GROUP BY `testTable`.testColumn, `testTable2`.testColumn3',
-            $this->sqlBuilder->buildGroupStatement(
-                array_merge([$this->metadata], $this->joinedMetadata),
-                ['testColumn99', 'testColumn98']
+                ['testTable' => ['testColumn'], 'testTable2' => ['testColumn3']]
             )
         );
     }
@@ -104,10 +101,9 @@ class SQLBuilderTest extends TestCase
     public function testBuildOrderStatement()
     {
         static::assertEquals(
-            'ORDER BY `testTable`.testColumn DESC, `testTable2`.testColumn3 ASC',
+            'ORDER BY `testTable`.`testColumn` DESC, `testTable2`.`testColumn3` ASC',
             $this->sqlBuilder->buildOrderStatement(
-                array_merge([$this->metadata], $this->joinedMetadata),
-                ['testColumn', 'testColumn3'],
+                ['testTable' => 'testColumn', 'testTable2' => 'testColumn3'],
                 ['DESC']
             )
         );
@@ -126,6 +122,21 @@ class SQLBuilderTest extends TestCase
         static::assertEquals(
             'LIMIT 2, 5',
             $this->sqlBuilder->buildLimitStatement(5, 2)
+        );
+    }
+
+    public function testBuildWhereStatement()
+    {
+        $condition = new Condition();
+        $condition->add('testColumn', 11);
+        $condition2 = new Condition(ConditionInterface::DISJUNCTION);
+        $condition2->add('testColumn2', 'test');
+        $condition2->add('testColumn3', 'test', ArgumentInterface::NOT_EQUAL);
+        $condition->addCondition($condition2);
+
+        static::assertEquals(
+            'LIMIT 2, 5',
+            $this->sqlBuilder->buildWhereStatement($this->metadata, $condition)
         );
     }
 }

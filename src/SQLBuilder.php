@@ -12,123 +12,89 @@ namespace samsonframework\orm;
  */
 class SQLBuilder
 {
-
     /**
-     * Build selected fields SELECT statement part.
+     * Build full table column name.
      *
-     * @param string $tableName
-     * @param array  $selectedFields
+     * @param string $tableName  Table name
+     * @param string $columnName Field name
      *
-     * @return string SELECT statement part
+     * @return string Full table column name
      */
-    protected function innerBuildSelectStatement(string $tableName, array $selectedFields) : string
+    protected function buildFullColumnName(string $tableName, string $columnName) : string
     {
-        $select = [];
-        foreach ($selectedFields as $field) {
-            $select[] = '`' . $tableName . '`.`'.$field.'`';
-        }
-
-        return implode(', ', $select);
+        return '`'.$tableName.'`.`'.$columnName.'`';
     }
 
     /**
-     * Build selected fields SELECT statement part.
+     * Build full table column names collection.
      *
-     * @param TableMetadata $metadata
-     * @param TableMetadata[] $joinedMetadata
-     * @return string SELECT statement
-     */
-    public function buildSelectStatement(TableMetadata $metadata, array $joinedMetadata = []) : string
-    {
-        $sql = 'SELECT '.$this->innerBuildSelectStatement($metadata->tableName, $metadata->columns);
-
-        foreach ($joinedMetadata as $joinMetadata) {
-            $sql .= "\n". ','.$this->innerBuildSelectStatement($joinMetadata->tableName, $joinMetadata->columns);
-        }
-
-        return $sql;
-    }
-
-    /**
-     * Build FROM statement part.
-     *
-     * @param TableMetadata $metadata
-     * @param TableMetadata[] $joinedMetadata
-     * @return string FROM statement
-     */
-    public function buildFromStatement(TableMetadata $metadata, array $joinedMetadata = []) : string
-    {
-        $sql = 'FROM `'.$metadata->tableName.'`';
-
-        foreach ($joinedMetadata as $joinMetadata) {
-            $sql .= "\n". ',`'.$joinMetadata->tableName.'`';
-        }
-
-        return $sql;
-    }
-
-    /**
-     * Try to build full column names with their tables
-     * from passed collections.
-     *
-     * @param array $tablesMetadata Table metadata collection
-     * @param array $columnNames Table column names
+     * @param array $tableColumns Tables and column names collection
      *
      * @return array Collection of full column names for query
-     *
-     * @throws \InvalidArgumentException If at least one passed column not found in passed metadata
      */
-    protected function buildFullColumnNames(array $tablesMetadata, array $columnNames) : array
+    protected function buildFullColumnNames(array $tableColumns) : array
     {
         $grouping = [];
-        foreach ($tablesMetadata as $metadata) {
-            foreach ($columnNames as $columnName) {
-                try {
-                    $grouping[] = '`'.$metadata->tableName.'`.'.$metadata->getTableColumnName($columnName);
-                } catch (\InvalidArgumentException $e) {
-                    // Do nothing
-                }
+        foreach ($tableColumns as $tableName => $columnNames) {
+            /** @var array $columnNames */
+            foreach ($columnNames = is_array($columnNames) ? $columnNames : [$columnNames] as $columnName) {
+                $grouping[] = $this->buildFullColumnName($tableName, $columnName);
             }
-        }
-
-        // Valid results
-        if (count($grouping) !== count($columnNames)) {
-            throw new \InvalidArgumentException('Cannot group by specified columns');
         }
 
         return $grouping;
     }
 
     /**
+     * Build selected fields SELECT statement part.
+     *
+     * @param array $tableColumns Tables and column names collection
+     *
+     * @return string SELECT statement
+     */
+    public function buildSelectStatement(array $tableColumns) : string
+    {
+        return 'SELECT '.implode(', ', $this->buildFullColumnNames($tableColumns));
+    }
+
+    /**
+     * Build FROM statement part.
+     *
+     * @param array $tableNames Tables and column names collection
+     *
+     * @return string FROM statement
+     */
+    public function buildFromStatement(array $tableNames = []) : string
+    {
+        return 'FROM `'.implode('`, `', $tableNames).'`';
+    }
+
+    /**
      * Build grouping statement.
      *
-     * @param TableMetadata[] $tablesMetadata
-     * @param array           $columnNames Column names collection
+     * @param array $tableColumns Tables and column names collection
      *
      * @return string Grouping statement
-     *
-     * @throws \InvalidArgumentException If at least one passed column not found in passed metadata
      */
-    public function buildGroupStatement(array $tablesMetadata, array $columnNames) : string
+    public function buildGroupStatement(array $tableColumns) : string
     {
-        return 'GROUP BY ' . implode(', ', $this->buildFullColumnNames($tablesMetadata, $columnNames));
+        return 'GROUP BY ' . implode(', ', $this->buildFullColumnNames($tableColumns));
     }
 
     /**
      * Build ordering statement.
      *
-     * @param TableMetadata[] $tablesMetadata
-     * @param array           $columnNames Column names collection
+     * @param array $tableColumns Tables and column names collection
      * @param array $orders Collection of columns sorting order
      *
      * @return string Ordering statement
      * @throws \InvalidArgumentException
      */
-    public function buildOrderStatement(array $tablesMetadata, array $columnNames, array $orders) : string
+    public function buildOrderStatement(array $tableColumns, array $orders) : string
     {
         $ordering = [];
         $i = 0;
-        foreach ($this->buildFullColumnNames($tablesMetadata, $columnNames) as $columnName) {
+        foreach ($this->buildFullColumnNames($tableColumns) as $columnName) {
             $ordering[] = $columnName.' '. ($orders[$i++] ?? 'ASC');
         }
 
@@ -151,25 +117,24 @@ class SQLBuilder
     /**
      * Build where statement.
      *
-     * @param ConditionInterface $condition
      * @param TableMetadata      $metadata
+     * @param ConditionInterface $condition
      *
      * @return string Limitation statement
      *
      */
-    public function buildWhereStatement(ConditionInterface $condition, TableMetadata $metadata) : string
+    public function buildWhereStatement(TableMetadata $metadata, ConditionInterface $condition) : string
     {
         $conditions = [];
 
         foreach ($condition as $argument) {
             if ($argument instanceof ConditionInterface) {
-                $conditions[] = $this->buildWhereStatement($argument, $metadata);
+                $conditions[] = $this->buildWhereStatement($metadata, $argument);
             } else {
                 $conditions[] = $this->parseCondition($argument, $metadata);
             }
         }
 
-        // Соберем все условия условной группы в строку
         if (count($conditions)) {
             return '(' . implode(') ' . $condition->relation . ' (', $conditions) . ')';
         } else {
