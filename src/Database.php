@@ -8,7 +8,8 @@
 namespace samsonframework\orm;
 
 /**
- * Class Database
+ * Database management class.
+ *
  * @package samsonframework\orm
  */
 class Database implements DatabaseInterface
@@ -25,7 +26,7 @@ class Database implements DatabaseInterface
     /**
      * Database constructor.
      *
-     * @param PDO $driver
+     * @param \PDO $driver
      */
     public function __construct(\PDO $driver)
     {
@@ -153,9 +154,11 @@ class Database implements DatabaseInterface
     /**
      * Fill entity instance fields from row column values according to entity metadata attributes.
      *
-     * @param mixed $instance Entity instance
+     * @param mixed $instance   Entity instance
      * @param array $attributes Metadata entity attributes
      * @param array $row        Database results row
+     *
+     * @throws \InvalidArgumentException
      */
     protected function fillEntityFieldValues($instance, array $attributes, array $row)
     {
@@ -210,7 +213,9 @@ class Database implements DatabaseInterface
                         // Store joined instance by primary field value
                         $instance->joined[$joinedClassName][$row[$joinedClassName::$_primary]] = $joinedInstance;
                     } else {
-                        throw new \InvalidArgumentException('Cannot join '.$joinedClassName.' - primary field '.$joinedClassName::$_primary.' not found');
+                        throw new \InvalidArgumentException(
+                            'Cannot join '.$joinedClassName.' - primary field '.$joinedClassName::$_primary.' not found'
+                        );
                     }
                 }
             }
