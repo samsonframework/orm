@@ -56,26 +56,6 @@ class DatabaseTest extends TestCase
         );
     }
 
-    public function testFetchArray()
-    {
-        $data = [
-            ['primary'=>1, 'testField' => 'test1'],
-            ['primary'=>2, 'testField' => 'test2']
-        ];
-
-        $stmt = $this->createMock(\PDOStatement::class);
-        $stmt->method('fetchAll')->willReturn($data);
-
-        $this->driver->method('query')->willReturn($stmt);
-
-        $objects = $this->database->fetchArray('SELECT column1, column2 FROM `table`', TestEntity::class);
-
-        static::assertArrayHasKey('primary', $objects[0]);
-        static::assertArrayHasKey('primary', $objects[1]);
-        static::assertEquals(1, $objects[0]['primary']);
-        static::assertEquals(2, $objects[1]['primary']);
-    }
-
     public function testFetchObjects()
     {
         $testEntity = new TestEntity($this->database);
@@ -106,6 +86,43 @@ class DatabaseTest extends TestCase
         static::assertInstanceOf(TestEntity::class, $objects[2]);
     }
 
+    protected function prepareFetchArray(array $data)
+    {
+        $stmt = $this->createMock(\PDOStatement::class);
+        $stmt->method('fetchAll')->willReturn($data);
+
+        $this->driver->method('query')->willReturn($stmt);
+    }
+
+    public function testFetchArray()
+    {
+        $this->prepareFetchArray([
+            ['primary'=>1, 'testField' => 'test1'],
+            ['primary'=>2, 'testField' => 'test2']
+        ]);
+
+        $objects = $this->database->fetchArray('SELECT column1, column2 FROM `table`');
+
+        static::assertArrayHasKey('primary', $objects[0]);
+        static::assertArrayHasKey('primary', $objects[1]);
+        static::assertEquals(1, $objects[0]['primary']);
+        static::assertEquals(2, $objects[1]['primary']);
+    }
+
+    public function testCount()
+    {
+        $this->prepareFetchArray([['__Count'=>1]]);
+
+        static::assertEquals(1, $this->database->count('SELECT column1, column2 FROM `table`'));
+    }
+
+    public function testCountEmpty()
+    {
+        $this->prepareFetchArray([]);
+
+        static::assertEquals(0, $this->database->count('SELECT column1, column2 FROM `table`'));
+    }
+
     protected function prepareFetchObjects(array $data)
     {
         $stmt = $this->createMock(\PDOStatement::class);
@@ -119,6 +136,7 @@ class DatabaseTest extends TestCase
             [JoinTestEntity::class]
         );
     }
+
     public function testFetchObjectsWithJoinException()
     {
         $this->expectException(\InvalidArgumentException::class);
