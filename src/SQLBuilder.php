@@ -155,26 +155,28 @@ class SQLBuilder
         return $this->buildCondition($columnName, $nullRelation);
     }
 
-    protected function buildNumericArrayValue(array $array) : string
-    {
-        return 'IN (' . implode(',', $array) . ')';
-    }
-
-    protected function buildStringArrayValue(array $array) : string
-    {
-        return 'IN ("' . implode('","', $array) . '")';
-    }
-
     protected function isColumnNumeric(string $columnType) : bool
     {
         return in_array($columnType, self::NUMERIC_COLUMNS_TYPES, true);
     }
 
-    protected function buildArrayValue(string $columnType, array $array) : string
+    protected function buildNumericArrayValue(array $array, string $relation) : string
     {
+        return $relation.' (' . implode(',', $array) . ')';
+    }
+
+    protected function buildStringArrayValue(array $array, string $relation) : string
+    {
+        return $relation.' ("' . implode('","', $array) . '")';
+    }
+
+    protected function buildArrayValue(string $columnType, array $array, string $relation = 'IN') : string
+    {
+        $relation = $relation === ArgumentInterface::NOT_EQUAL ? 'NOT IN' : 'IN';
+
         return $this->isColumnNumeric($columnType)
-            ? $this->buildNumericArrayValue($array)
-            : $this->buildStringArrayValue($array);
+            ? $this->buildNumericArrayValue($array, $relation)
+            : $this->buildStringArrayValue($array, $relation);
     }
 
     protected function buildNumericValue($value) : string
@@ -187,40 +189,27 @@ class SQLBuilder
         return '"'.$value.'"';
     }
 
-    protected function buildValue(string $columnType, $value) : string
+    protected function buildValue(string $columnType, $value, string $relation) : string
     {
         return $this->isColumnNumeric($columnType)
-            ? $this->buildNumericValue($value)
-            : $this->buildStringValue($value);
+            ? $relation . ' ' . $this->buildNumericValue($value)
+            : $relation . ' ' . $this->buildStringValue($value);
     }
 
-    protected function buildArgumentValue($value, string $columnType)
+    protected function buildArgumentValue($value, string $columnType, string $relation)
     {
         return is_array($value)
-            ? $this->buildArrayValue($columnType, $value)
-            : $this->buildValue($columnType, $value);
+            ? $this->buildArrayValue($columnType, $value, $relation)
+            : $this->buildValue($columnType, $value, $relation);
     }
 
     protected function buildArgumentCondition(string $columnName, string $columnType, string $relation, $value)
     {
-        if (is_array($value)) {
-            // Generate list of values, integer type optimization
-            $arrayValue = $this->buildArrayValue($columnType, $value);
-
-            if ($relation === ArgumentInterface::NOT_EQUAL) {
-                $arrayValue = 'NOT '.$arrayValue;
-            }
-
-            return $this->buildCondition($columnName, $arrayValue);
-        } else { // Regular condition
-            return $this->buildCondition(
-                $columnName,
-                $relation,
-                ($columnType === 'int' ? (string)$value : '"'.$value .'"')
-            );
-        }
+        return $this->buildCondition(
+            $columnName,
+            $this->buildArgumentValue($value, $columnType, $relation)
+        );
     }
-
 
     /**
      * "Правильно" разпознать переданный аргумент условия запроса к БД
