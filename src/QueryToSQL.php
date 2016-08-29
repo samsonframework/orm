@@ -126,7 +126,9 @@ class QueryToSQL
      */
     protected function parseCondition(TableMetadata $metadata, Argument $argument)
     {
-        $sql = $metadata->getTableColumnName($argument->field);
+        $columnName = $metadata->getTableColumnName($argument->field);
+        $columnType = $metadata->getTableColumnType($columnName);
+        $sql = $columnName;
 
         // Если аргумент условия - это НЕ массив - оптимизации по более частому условию
         if (!is_array($argument->value)) {
@@ -135,7 +137,7 @@ class QueryToSQL
             } elseif ($argument->relation === ArgumentInterface::OWN) {
                 return $argument->field;
             } else {
-                return $sql . $argument->relation . '"'.$argument->value .'"';
+                return $sql . $argument->relation . ($columnType === 'int' ? $argument->value : '"'.$argument->value .'"');
             }
         } // Если аргумент условия - это массив и в нем есть значения
         else {
@@ -144,7 +146,7 @@ class QueryToSQL
                 // TODO: Get types of joined tables fields
 
                 // Generate list of values, integer type optimization
-                $sql_values = isset($class_name::$_types[$argument->field]) && $class_name::$_types[$argument->field] == 'int'
+                $sql_values = $columnType === 'int'
                     ? ' IN (' . implode(',', $argument->value) . ')'
                     : ' IN ("' . implode('","', $argument->value) . '")';
 

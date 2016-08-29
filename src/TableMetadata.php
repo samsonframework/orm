@@ -35,6 +35,7 @@ class TableMetadata
      * @param string $columnNameOrAlias Table column name or alias
      *
      * @return string Table column name
+     * @throws \InvalidArgumentException
      */
     public function getTableColumnName(string $columnNameOrAlias) : string
     {
