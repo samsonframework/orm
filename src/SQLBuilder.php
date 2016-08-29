@@ -6,7 +6,7 @@
 namespace samsonframework\orm;
 
 /**
- * Class QueryToSQL
+ * SQL statement builder class.
  *
  * @author Vitaly Egorov <egorov@samsonos.com>
  */
