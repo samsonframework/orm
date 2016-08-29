@@ -100,4 +100,46 @@ class DatabaseTest extends TestCase
         static::assertInstanceOf(TestEntity::class, $objects[1]);
         static::assertInstanceOf(TestEntity::class, $objects[2]);
     }
+
+    protected function prepareFetchObjects(array $data)
+    {
+        $stmt = $this->createMock(\PDOStatement::class);
+        $stmt->method('fetchAll')->willReturn($data);
+
+        $this->driver->method('query')->willReturn($stmt);
+
+        return $this->database->fetchObjectsWithJoin(
+            'SELECT column1, column2 FROM `table`',
+            TestEntity::class,
+            [JoinTestEntity::class]
+        );
+    }
+    public function testFetchObjectsWithJoinException()
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        $this->prepareFetchObjects([
+            ['primary'=>1, 'testField' => 'test1' ],
+            ['primary'=>2, 'testField' => 'test2']
+        ]);
+    }
+
+    public function testFetchObjectsWithJoin()
+    {
+        $objects = $this->prepareFetchObjects([
+            ['primary'=>1, 'testField' => 'test1', 'primary2' => 22, 'testField2' => 'test2'],
+            ['primary'=>2, 'testField' => 'test2', 'primary2' => 23, 'testField2' => 'test3']
+        ]);
+
+        $testEntity = $objects[1];
+        static::assertInstanceOf(TestEntity::class, $testEntity);
+        static::assertArrayHasKey(JoinTestEntity::class, $testEntity->joined);
+
+        $joinedEntities = $testEntity->joined[JoinTestEntity::class];
+
+        // Checked joined entities grouped by their id
+        static::assertArrayHasKey(22, $joinedEntities);
+        // Check joined instance
+        static::assertInstanceOf(JoinTestEntity::class, $joinedEntities[22]);
+    }
 }

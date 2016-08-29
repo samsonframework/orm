@@ -59,6 +59,9 @@ class Record implements RenderInterface, \ArrayAccess, RecordInterface
     /** @var array Collection of entity optimized field names with real field names */
     public static $_map = array();
 
+    /** @var array Collection of joined entities */
+    public $joined = [];
+
     /** @var int Identifier */
     public $id = 0;
 

@@ -232,11 +232,15 @@ class Database implements DatabaseInterface
             foreach ($entityRows as $row) {
                 // Iterate all joined entities
                 foreach ($joinedClassNames as $joinedClassName) {
-                    // Create joined instance and add to parent instance
-                    $joinedInstance = $instance->$joinedClassName[] = new $joinedClassName($this);
+                    if (array_key_exists($joinedClassName::$_primary, $row)) {
+                        // Create joined instance and add to parent instance
+                        $joinedInstance = $instance->joined[$joinedClassName][$row[$joinedClassName::$_primary]] = new $joinedClassName($this);
 
-                    // TODO: We need to change metadata retrieval
-                    $this->fillEntityFieldValues($joinedInstance, $joinedClassName::$_attributes, $row);
+                        // TODO: We need to change metadata retrieval
+                        $this->fillEntityFieldValues($joinedInstance, $joinedClassName::$_attributes, $row);
+                    } else {
+                        throw new \InvalidArgumentException('Cannot join '.$joinedClassName.' - primary field '.$joinedClassName::$_primary.' not found');
+                    }
                 }
             }
         }
