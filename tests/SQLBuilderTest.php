@@ -135,7 +135,7 @@ class SQLBuilderTest extends TestCase
         $condition->addCondition($condition2);
 
         static::assertEquals(
-            'LIMIT 2, 5',
+            '(testColumn=11) AND ((testColumn2="test") OR (testColumn3!="test"))',
             $this->sqlBuilder->buildWhereStatement($this->metadata, $condition)
         );
     }
