@@ -28,67 +28,19 @@ class Database implements DatabaseInterface
     /** @var int Amount queries executed */
     protected $count;
 
-    /** Do not serialize anything */
-    public function __sleep()
-    {
-        return array();
-    }
-
     /**
-     * Connect to a database using driver with parameters
-     * @param string $database Database name
-     * @param string $username Database username
-     * @param string $password Database password
-     * @param string $host Database host(localhost by default)
-     * @param int $port Database port(3306 by default)
-     * @param string $driver Database driver for interaction(MySQL by default)
-     * @param string $charset Database character set
-     * @return bool True if connection to database was successful
+     * Database constructor.
+     *
+     * @param PDO $driver
      */
-    public function connect(
-        $database,
-        $username,
-        $password,
-        $host = 'localhost',
-        $port = 3306,
-        $driver = 'mysql',
-        $charset = 'utf8'
-    ) {
-        // If we have not connected yet
-        if ($this->driver === null) {
-            $this->database = $database;
-
-            // Check if configured database exists
-            $this->driver = new PDO($host, $database, $username, $password, $charset, $port, $driver);
-
-            // Set correct encodings
-            $this->execute("set character_set_client='utf8'");
-            $this->execute("set character_set_results='utf8'");
-            $this->execute("set collation_connection='utf8_general_ci'");
-
-            //new ManagerGenerator($this);
-        }
-    }
-
-    /**
-     * Get database name
-     * @return string
-     * @deprecated
-     */
-    public function database()
+    public function __construct(\PDO $driver)
     {
-        return $this->database;
-    }
+        $this->driver = $driver;
 
-    /**
-     * High-level database query executor
-     * @param string $sql SQL statement
-     * @return mixed Database query result
-     * @deprecated Use execute()
-     */
-    public function query($sql)
-    {
-        return $this->execute($sql);
+        // Set correct encodings
+        $this->execute("set character_set_client='utf8'");
+        $this->execute("set character_set_results='utf8'");
+        $this->execute("set collation_connection='utf8_general_ci'");
     }
 
     /**
@@ -112,35 +64,37 @@ class Database implements DatabaseInterface
 
     /**
      * Proxy function for executing database fetching logic with exception,
-     * error, profile handling
+     * error, profile handling.
+     *
      * @param callback $fetcher Callback for fetching
+     *
      * @return mixed Fetching function result
+     * @throws \Exception
      */
     private function executeFetcher($fetcher, $sql)
     {
-        $result = array();
+        $result = [];
 
-        if (isset($this->driver)) {
-            // Store timestamp
-            $tsLast = microtime(true);
+        // Store timestamp
+        $tsLast = microtime(true);
 
-            try { // Call fetcher
-                // Get argument and remove first one
-                $args = func_get_args();
-                array_shift($args);
+        try { // Call fetcher
+            // Get argument and remove first one
+            $args = func_get_args();
+            array_shift($args);
 
-                // Proxy calling of fetcher function with passing parameters
-                $result = call_user_func_array($fetcher, $args);
-            } catch (\PDOException $exception) {
-                $this->outputError($exception, $sql, 'Error executing ['.$fetcher[1].']');
-            }
-
-            // Store queries count
-            $this->count++;
-
-            // Count elapsed time
-            $this->elapsed += microtime(true) - $tsLast;
+            // Proxy calling of fetcher function with passing parameters
+            $result = call_user_func_array($fetcher, $args);
+        } catch (\PDOException $exception) {
+            $this->outputError($exception, $sql, 'Error executing ['.$fetcher[1].']');
         }
+
+        // Store queries count
+        $this->count++;
+
+        // Count elapsed time
+        $this->elapsed += microtime(true) - $tsLast;
+
 
         return $result;
     }
@@ -292,7 +246,7 @@ class Database implements DatabaseInterface
      */
     public function fetchArray(string $sql) : array
     {
-        // TODO: Implement fetchArray() method.
+        return $this->fetch($sql);
     }
 
     /**
@@ -300,11 +254,13 @@ class Database implements DatabaseInterface
      */
     public function fetchObjects(string $sql, string $className) : array
     {
-        return $this->toRecords(
-            $className,
+        return $this->createEntities(
             $this->fetchArray($sql),
-            $query->join,
-            array_merge($query->own_virtual_fields, $query->virtual_fields)
+            $className::$_primary,
+            $className,
+            []
+            //$query->join,
+            //array_merge($query->own_virtual_fields, $query->virtual_fields)
         );
     }
 
@@ -313,7 +269,7 @@ class Database implements DatabaseInterface
      */
     public function fetchColumns(string $sql, int $columnIndex) : array
     {
-        return $this->executeFetcher(array($this, 'innerFetchColumn'), $sql, $columnIndex);
+        return $this->executeFetcher([$this, 'innerFetchColumn'], $sql, $columnIndex);
     }
 
     /**
@@ -381,7 +337,7 @@ class Database implements DatabaseInterface
         /** @var array $entityRows Iterate entity rows */
         foreach ($this->groupResults($rows, $primaryField) as $primaryValue => $entityRows) {
             // Create entity instance
-            $instance = $objects[$primaryValue] = new $className();
+            $instance = $objects[$primaryValue] = new $className($this);
 
             // TODO: $attributes argument should be filled with selected fields?
             $this->fillEntityFieldValues($instance, $className::$_attributes, $entityRows[0]);
@@ -391,7 +347,7 @@ class Database implements DatabaseInterface
                 // Iterate all joined entities
                 foreach ($joinedClassNames as $joinedClassName) {
                     // Create joined instance and add to parent instance
-                    $joinedInstance = $instance->$joinedClassName[] = new $joinedClassName();
+                    $joinedInstance = $instance->$joinedClassName[] = new $joinedClassName($this);
 
                     // TODO: We need to change metadata retrieval
                     $this->fillEntityFieldValues($joinedInstance, $joinedClassName::$_attributes, $row);

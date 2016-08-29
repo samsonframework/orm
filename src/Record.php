@@ -76,9 +76,6 @@ class Record implements RenderInterface, \ArrayAccess, RecordInterface
 
     /** @var DatabaseInterface Database layer */
     protected $database;
-
-    /** @var QueryInterface */
-    protected $query;
     
     /**
      * Find database record by primary key value.
@@ -166,12 +163,10 @@ class Record implements RenderInterface, \ArrayAccess, RecordInterface
      * @param DatabaseInterface|null $database
      * @param QueryInterface|null    $query
      */
-    public function __construct(DatabaseInterface $database = null, QueryInterface $query = null)
+    public function __construct(DatabaseInterface $database)
     {
-        // TODO: db() & new dbQuery() should be removed
         // Get database layer
-        $this->database = $database !== null ? $database : db();
-        $this->query = $query !== null ? $query : new dbQuery();
+        $this->database = $database;
 
         // Get current class name if none is passed
         $this->className = get_class($this);
