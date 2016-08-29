@@ -18,6 +18,7 @@ class QueryHandler
      * Add extenal query handler
      * @param callable $callable External handler
      * @return self Chaining
+     * @deprecated Not used
      */
     public function handler($callable)
     {
