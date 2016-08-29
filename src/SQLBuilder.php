@@ -74,6 +74,8 @@ class SQLBuilder
      * @param array           $columnNames Column names collection
      *
      * @return string Grouping statement
+     *
+     * @throws \InvalidArgumentException If at least one passed column not found in passed metadata
      */
     public function buildGroupStatement(array $tablesMetadata, array $columnNames) : string
     {
@@ -88,7 +90,8 @@ class SQLBuilder
             }
         }
 
-        if (!count($grouping)) {
+        // Valid results
+        if (count($grouping) !== count($columnNames)) {
             throw new \InvalidArgumentException('Cannot group by specified columns');
         }
 
