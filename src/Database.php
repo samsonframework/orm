@@ -22,12 +22,6 @@ class Database implements DatabaseInterface
     /** @var string Database name */
     protected $database;
 
-    /** @var int Amount of milliseconds spent on queries */
-    protected $elapsed;
-
-    /** @var int Amount queries executed */
-    protected $count;
-
     /**
      * Database constructor.
      *
@@ -44,137 +38,20 @@ class Database implements DatabaseInterface
     }
 
     /**
-     * Internal error beautifier.
-     *
-     * @param \Exception $exception
-     * @param            $sql
-     * @param string     $text
-     *
-     * @throws \Exception
-     */
-    private function outputError(\Exception $exception, $sql, $text = 'Error executing database query:')
-    {
-        throw $exception;
-
-        echo("\n" . '<div style="font-size:12px; position:relative; background:red; z-index:9999999;">'
-            .'<div style="padding:4px 10px;">'.$text.'</div>'
-            .'<div style="padding:0px 10px;">['.htmlspecialchars($exception->getMessage()).']</div>'
-            .'<textarea style="display:block; width:100%; min-height:100px;">'.$sql . '</textarea></div>');
-    }
-
-    /**
-     * Proxy function for executing database fetching logic with exception,
-     * error, profile handling.
-     *
-     * @param callback $fetcher Callback for fetching
-     *
-     * @return mixed Fetching function result
-     * @throws \Exception
-     */
-    private function executeFetcher($fetcher, $sql)
-    {
-        $result = [];
-
-        // Store timestamp
-        $tsLast = microtime(true);
-
-        try { // Call fetcher
-            // Get argument and remove first one
-            $args = func_get_args();
-            array_shift($args);
-
-            // Proxy calling of fetcher function with passing parameters
-            $result = call_user_func_array($fetcher, $args);
-        } catch (\PDOException $exception) {
-            $this->outputError($exception, $sql, 'Error executing ['.$fetcher[1].']');
-        }
-
-        // Store queries count
-        $this->count++;
-
-        // Count elapsed time
-        $this->elapsed += microtime(true) - $tsLast;
-
-
-        return $result;
-    }
-
-    /**
-     * High-level database query executor
-     * @param string $sql SQL statement
-     * @return mixed Database query result
-     */
-    private function innerQuery($sql)
-    {
-        try {
-            // Perform database query
-            return $this->driver->prepare($sql)->execute();
-        } catch (\PDOException $e) {
-            $this->outputError($e, $sql);
-        }
-
-        return null;
-    }
-
-    /**
-     * Retrieve array of records from a database, if $className is passed method
-     * will try to create an object of that type. If request has failed than
-     * method will return empty array of stdClass all arrays regarding to $className is
-     * passed or not.
-     *
-     * @param string $sql SQL statement
-     * @return array Collection of arrays or objects
-     */
-    private function innerFetch($sql, $className = null)
-    {
-        try {
-            // Perform database query
-            if (!isset($className)) { // Return array
-                return $this->driver->query($sql)->fetchAll(\PDO::FETCH_ASSOC);
-            } else { // Create object of passed class name
-                return $this->driver->query($sql)->fetchAll(\PDO::FETCH_CLASS, $className, array(&$this));
-            }
-        } catch (\PDOException $e) {
-            $this->outputError($e, $sql, 'Fetching database records:');
-        }
-
-        return array();
-    }
-
-    /**
-     * Special accelerated function to retrieve db record fields instead of objects
-     *
-     * @param string $sql SQL statement
-     * @param int $columnIndex Needed column index
-     *
-     * @return array Database records column value collection
-     */
-    private function innerFetchColumn($sql, $columnIndex)
-    {
-        try {
-            // Perform database query
-            return $this->driver->query($sql)->fetchAll(\PDO::FETCH_COLUMN, $columnIndex);
-        } catch (\PDOException $e) {
-            $this->outputError($e, $sql, 'Error fetching records column values:');
-        }
-
-        return array();
-    }
-
-    /**
      * {@inheritdoc}
      */
     public function execute(string $sql)
     {
-        return $this->executeFetcher(array($this, 'innerQuery'), $sql);
+        // Perform database query
+        return $this->driver->prepare($sql)->execute();
     }
 
     /**
-     * {@inheritdoc}
+     * @deprecated Use self::fetchArray()
      */
     public function fetch(string $sql)
     {
-        return $this->executeFetcher(array($this, 'innerFetch'), $sql);
+        return $this->fetchArray($sql);
     }
 
     /**
@@ -188,17 +65,11 @@ class Database implements DatabaseInterface
      * @param string $field Entity field identifier
      *
      * @return array Collection of rows with field value
-     * @deprecated
+     * @deprecated Use self::fetchColumns
      */
     public function fetchColumn($entity, QueryInterface $query, $field)
     {
-        // TODO: Remove old attributes retrieval
-
-        return $this->executeFetcher(
-            array($this, 'innerFetchColumn'),
-            $this->prepareSQL($entity, $query),
-            array_search($field, array_values($entity::$_table_attributes))
-        );
+        return $this->fetchColumns($this->prepareSQL($entity, $query), array_search($field, array_values($entity::$_table_attributes)));
     }
 
     /**
@@ -244,9 +115,14 @@ class Database implements DatabaseInterface
     /**
      * {@inheritdoc}
      */
-    public function fetchArray(string $sql) : array
+    public function fetchArray(string $sql, string $className = null) : array
     {
-        return $this->fetch($sql);
+        // Perform database query
+        if ($className === null) { // Return array
+            return $this->driver->query($sql)->fetchAll(\PDO::FETCH_ASSOC);
+        } else { // Create object of passed class name
+            return $this->driver->query($sql)->fetchAll(\PDO::FETCH_CLASS, $className);
+        }
     }
 
     /**
@@ -269,7 +145,7 @@ class Database implements DatabaseInterface
      */
     public function fetchColumns(string $sql, int $columnIndex) : array
     {
-        return $this->executeFetcher([$this, 'innerFetchColumn'], $sql, $columnIndex);
+        return $this->driver->query($sql)->fetchAll(\PDO::FETCH_COLUMN, $columnIndex);
     }
 
     /**
