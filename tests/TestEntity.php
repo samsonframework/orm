@@ -16,7 +16,7 @@ class TestEntity extends Record
 {
     /** @var string Primary field name */
     public static $_primary = 'primary';
-    /** @var array Attributes metadata */
+    /** @var array Attributes className */
     public static $_attributes = ['testFieldAlias'=>'testField'];
 
     /** @var string Primary field */

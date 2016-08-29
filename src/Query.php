@@ -10,53 +10,43 @@ use samsonframework\orm\exception\EntityNotFound;
  */
 class Query extends QueryHandler implements QueryInterface
 {
-    /** @var string Class name for interacting with database */
-    protected $class_name;
+    /** @var string Database table className */
+    protected $className;
 
     /** @var array Collection of parent table selected fields */
     protected $select = [];
 
     /** @var array Collection of entity field names for sorting order */
-    protected $sorting = array();
+    protected $sorting = [];
 
     /** @var array Collection of entity field names for grouping query results */
-    protected $grouping = array();
+    protected $grouping = [];
 
     /** @var array Collection of query results limitations */
-    protected $limitation = array();
+    protected $limitation = [];
 
-    /** @var Condition Query base entity condition group */
-    protected $own_condition;
+    /** @var array Collection of joined entities */
+    protected $joins = [];
 
     /** @var Condition Query entity condition group */
-    protected $cConditionGroup;
+    protected $condition;
 
-    /** @var Database Database instance */
+    /** @var DatabaseInterface Database instance */
     protected $database;
 
-    /** Serialization handler */
-    public function __sleep()
-    {
-        // Do not serialize anything
-        return array();
-    }
-
-    /** Unserialize handler */
-    public function  __wakeup()
-    {
-        //Get DB
-        $this->database = db();
-    }
-
+    /** @var SQLBuilder SQL builder */
+    protected $sqlBuilder;
 
     /**
      * Query constructor.
      *
-     * @param Database Database instance
+     * @param               Database Database instance
+     * @param SQLBuilder    $sqlBuilder
      */
-    public function __construct(Database $database)
+    public function __construct(Database $database, SQLBuilder $sqlBuilder)
     {
-        $this->database = &$database;
+        $this->database = $database;
+        $this->sqlBuilder = $sqlBuilder;
         $this->flush();
     }
 
@@ -66,125 +56,61 @@ class Query extends QueryHandler implements QueryInterface
      */
     public function flush()
     {
-        $this->grouping = array();
-        $this->limitation = array();
-        $this->sorting = array();
+        $this->grouping = [];
+        $this->limitation = [];
+        $this->sorting = [];
 
-        $this->cConditionGroup = new Condition();
-        $this->own_condition = new Condition();
+        $this->condition = new Condition();
 
         return $this;
     }
 
     /**
-     * Proxy function for performing database request and get collection of database record objects.
-     * This method encapsulates all logic needed for query to be done before and after actual database
-     * manager request.
-     *
-     * @param string $fetcher Database manager fetching method
-     * @return mixed Return fetching function result
+     * {@inheritdoc}
      */
-    protected function innerExecute($fetcher = 'find')
+    public function exec() : array
     {
-        // Call handlers stack
-        $this->callHandlers();
-
-        // Remove first argument
-        $args = func_get_args();
-        array_shift($args);
-
-        /** @var RecordInterface[] $return Perform DB request */
-        $return = call_user_func_array(array($this->database, $fetcher), $args);
-
-        // Clear this query
-        $this->flush();
-
-        // Return bool or collection
-        return $return;
+        return $this->database->fetchObjects($this->sqlBuilder->build(), $this->className);
     }
 
     /**
-     * Perform database request and get collection of database record objects.
-     *
-     * @param mixed $return External variable to store query results
-     * @return mixed If no arguments passed returns query results collection, otherwise query success status
+     * {@inheritdoc}
      */
-    public function exec(&$return = null)
+    public function count() : int
     {
-        /** @var RecordInterface[] $return Perform DB request */
-        $return = $this->innerExecute('find', $this->class_name, $this);
-
-        // Return bool or collection
-        return func_num_args() ? sizeof($return) : $return;
+        return $this->database->count($this->sqlBuilder->build());
     }
 
     /**
-     * Execute current query and receive amount of resulting rows.
-     *
-     * @param null|RecordInterface $return If variable is passed resulting amount of rows would be
-     *                                      stored in this variable.
-     * @return bool|RecordInterface If method is called with $return parameter then then bool
-     *                                  with query result status would be returned, otherwise
-     *                                  query rows count would be returned.
+     * {@inheritdoc}
      */
-    public function count(&$return = null)
+    public function first() : RecordInterface
     {
-        /** @var RecordInterface[] $return Perform DB request */
-        $return = $this->innerExecute('count', $this->class_name, $this);
+        $return = $this->limit(1)->exec();
 
-        // Return bool or collection
-        return func_num_args() ? sizeof($return) : $return;
+        return count($return) ? array_shift($return) : null;
     }
 
     /**
-     * Perform database request and get first record from results collection.
-     *
-     * @param mixed $return External variable to store query results
-     * @return mixed If no arguments passed returns query results first database record object,
-     * otherwise query success status
+     * {@inheritdoc}
      */
-    public function first(&$return = null)
+    public function fields(string $fieldName) : array
     {
-        // Add limitation
-        $this->limit(1);
-
-        /** @var RecordInterface[] $return Perform DB request */
-        $return = $this->innerExecute('find', $this->class_name, $this);
-        $return = sizeof($return) ? array_shift($return) : null;
+        // Get column index by field name
+        $columnIndex = array_search($fieldName, array_values($className::$_table_attributes), true);
 
         // Return bool or collection
-        return func_num_args() ? sizeof($return) : $return;
+        return $this->database->fetchColumn($this->sqlBuilder->build(), $columnIndex);
     }
 
     /**
-     * Perform database request and get array of record field values
-     * @see \samson\activerecord\Query::execute()
-     * @param string $fieldName Record field name to get value from
-     * @param string $return External variable to store query results
-     * @return mixed If no arguments passed returns query results first database record object,
-     * otherwise query success status
+     * {@inheritdoc}
      */
-    public function fields($fieldName, &$return = null)
-    {
-        /** @var RecordInterface[] $return Perform DB request */
-        $return = $this->innerExecute('fetchColumn', $this->class_name, $this, $fieldName);
-
-        // Return bool or collection
-        return func_num_args() > 1 ? sizeof($return) : $return;
-    }
-
-    /**
-     * Set query entity to work with.
-     *
-     * @param string $entity Entity identifier
-     * @return Query Chaining
-     * @throws EntityNotFound
-     */
-    public function entity($entity)
+    public function entity(string $entity) : QueryInterface
     {
         if (class_exists($entity)) {
             $this->flush();
-            $this->class_name = $entity;
+            $this->className = $entity;
         } else {
             throw new EntityNotFound('['.$entity.'] not found');
         }
@@ -202,48 +128,28 @@ class Query extends QueryHandler implements QueryInterface
      */
     protected function &conditionGroup($fieldName)
     {
-        if (property_exists($this->class_name, $fieldName)) {
+        if (property_exists($this->className, $fieldName)) {
             // Add this condition to base entity condition group
             return $this->own_condition;
         }
 
-        return $this->cConditionGroup;
+        return $this->condition;
     }
 
     /**
-     * Add query condition as prepared Condition instance.
-     *
-     * @param ConditionInterface $condition Condition to be added
-     * @return self Chaining
+     * {@inheritdoc}
      */
-    public function whereCondition(ConditionInterface $condition)
+    public function whereCondition(ConditionInterface $condition) : QueryInterface
     {
-        // TODO: We cannot define to which group this condition is related
-        $this->own_condition->addCondition($condition);
-
-//        // Iterate condition arguments
-//        foreach ($condition as $argument) {
-//            // If passed condition group has another condition group as argument
-//            if (is_a($argument, __NAMESPACE__ . '\Condition')) {
-//                // Go deeper in recursion
-//                $this->whereCondition($argument);
-//            } else { // Otherwise add condition argument to correct condition group
-//                $this->conditionGroup($argument->field)->addArgument($argument);
-//            }
-//        }
+        $this->condition->addCondition($condition);
 
         return $this;
     }
 
     /**
-     * Add condition to current query.
-     *
-     * @param string $fieldName Entity field name
-     * @param string $fieldValue Value
-     * @param string $relation Relation between field name and its value
-     * @return self Chaining
+     * {@inheritdoc}
      */
-    public function where($fieldName, $fieldValue = null, $relation = '=')
+    public function where(string $fieldName, $fieldValue = null, string $relation = ArgumentInterface::EQUAL) : QueryInterface
     {
         // If empty array is passed
         if (is_string($fieldName)) {
@@ -268,27 +174,21 @@ class Query extends QueryHandler implements QueryInterface
     }
 
     /**
-     * Join entity to query.
-     *
-     * @param string $entityName Entity identifier
-     * @return self Chaining
+     * {@inheritdoc}
      */
-    public function join($entityName)
+    public function join(string $entityName)
     {
         // TODO: We need to implement this logic
-        $entityName .= '';
+        $this->joins[$entityName] = [];
 
         // Chaining
         return $this;
     }
 
     /**
-     * Add query result grouping.
-     *
-     * @param string $fieldName Entity field identifier for grouping
-     * @return self Chaining
+     * {@inheritdoc}
      */
-    public function groupBy($fieldName)
+    public function groupBy(string $fieldName) : QueryInterface
     {
         $this->grouping[] = $fieldName;
 
@@ -297,28 +197,20 @@ class Query extends QueryHandler implements QueryInterface
     }
 
     /**
-     * Add query result quantity limitation.
-     *
-     * @param int $offset Resulting offset
-     * @param null|int $quantity Amount of RecordInterface object to return
-     * @return self Chaining
+     * {@inheritdoc}
      */
-    public function limit($offset, $quantity = null)
+    public function limit(int $quantity, int $offset = 0)
     {
-        $this->limitation = array($offset, $quantity);
+        $this->limitation = [$quantity, $offset];
 
         // Chaining
         return $this;
     }
 
     /**
-     * Add query result sorting.
-     *
-     * @param string $fieldName Entity field identifier for worting
-     * @param string $order Sorting order
-     * @return self Chaining
+     * {@inheritdoc}
      */
-    public function orderBy($fieldName, $order = 'ASC')
+    public function orderBy(string $fieldName, string $order = 'ASC') : QueryInterface
     {
         $this->sorting[] = array($fieldName, $order);
 

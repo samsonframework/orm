@@ -107,10 +107,8 @@ class Database implements DatabaseInterface
     /**
      * {@inheritdoc}
      */
-    public function fetchColumn(string $sql, string $className, string $fieldName) : array
+    public function fetchColumn(string $sql, int $columnIndex) : array
     {
-        $columnIndex = array_search($fieldName, array_values($className::$_table_attributes), true);
-
         return $this->driver->query($sql)->fetchAll(\PDO::FETCH_COLUMN, $columnIndex);
     }
 
@@ -152,7 +150,7 @@ class Database implements DatabaseInterface
     }
 
     /**
-     * Fill entity instance fields from row column values according to entity metadata attributes.
+     * Fill entity instance fields from row column values according to entity className attributes.
      *
      * @param mixed $instance   Entity instance
      * @param array $attributes Metadata entity attributes
@@ -162,7 +160,7 @@ class Database implements DatabaseInterface
      */
     protected function fillEntityFieldValues($instance, array $attributes, array $row)
     {
-        // Iterate attribute metadata
+        // Iterate attribute className
         foreach ($attributes as $alias) {
             // If database row has aliased field column
             if (array_key_exists($alias, $row)) {
@@ -207,7 +205,7 @@ class Database implements DatabaseInterface
                         // Create joined instance and add to parent instance
                         $joinedInstance = new $joinedClassName($this);
 
-                        // TODO: We need to change metadata retrieval
+                        // TODO: We need to change className retrieval
                         $this->fillEntityFieldValues($joinedInstance, $joinedClassName::$_attributes, $row);
 
                         // Store joined instance by primary field value

@@ -2,7 +2,7 @@
 namespace samsonframework\orm;
 
 /**
- * Base table metadata class.
+ * Base table className class.
  *
  * @author Vitaly Iegorov <egorov@samsonos.com>
  */

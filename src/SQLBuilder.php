@@ -10,7 +10,7 @@ namespace samsonframework\orm;
  *
  * @author Vitaly Egorov <egorov@samsonos.com>
  */
-class QueryToSQL
+class SQLBuilder
 {
     /**
      * Build selected fields SELECT statement part.

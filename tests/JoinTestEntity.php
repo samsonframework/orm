@@ -16,7 +16,7 @@ class JoinTestEntity extends Record
 {
     /** @var string Primary field name */
     public static $_primary = 'primary2';
-    /** @var array Attributes metadata */
+    /** @var array Attributes className */
     public static $_attributes = ['testField2Alias'=>'testField2'];
 
     /** @var string Primary field */

@@ -16,7 +16,7 @@ class ManagerGenerator
     /** @var Database Database manager */
     protected $database;
 
-    /** @var string SQL statement for retrieving database tables metadata */
+    /** @var string SQL statement for retrieving database tables className */
     protected $metadataSQL = '
       SELECT
       `TABLES`.`TABLE_NAME` as `TABLE_NAME`,
@@ -46,10 +46,10 @@ class ManagerGenerator
     }
 
     /**
-     * Create database structure metadata. This method should return array:
+     * Create database structure className. This method should return array:
      * $entity => [ $field => [ $field_params[] ].
      *
-     * @return array Database structure metadata
+     * @return array Database structure className
      */
     public function metadata()
     {
@@ -58,7 +58,7 @@ class ManagerGenerator
 
         /** @var array Collection of database tables and their fields description  */
         $metadata = array();
-        // Iterate database metadata
+        // Iterate database className
         foreach ($this->database->fetch($this->metadataSQL) as $tableMetadata) {
             // Gather database in format entity => field => [field_params]
             $metadata[$tableMetadata['TABLE_NAME']][$tableMetadata['Field']] = array_slice($tableMetadata, 2);
