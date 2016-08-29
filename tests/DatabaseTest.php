@@ -5,7 +5,6 @@
  */
 namespace samsonframework\orm\tests;
 
-use PHPUnit\Framework\TestCase;
 use samsonframework\orm\Database;
 use samsonframework\orm\DatabaseInterface;
 use samsonframework\orm\TableMetadata;

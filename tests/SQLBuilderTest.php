@@ -5,7 +5,6 @@
  */
 namespace samsonframework\orm\tests;
 
-use PHPUnit\Framework\TestCase;
 use samsonframework\orm\ArgumentInterface;
 use samsonframework\orm\Condition;
 use samsonframework\orm\ConditionInterface;
