@@ -156,40 +156,93 @@ class SQLBuilder
         return $this->buildCondition($columnName, $nullRelation);
     }
 
+    /**
+     * Define if table column type is numeric.
+     *
+     * @param string $columnType Table column type
+     *
+     * @return bool True if column type is numeric
+     */
     protected function isColumnNumeric(string $columnType) : bool
     {
         return in_array($columnType, self::NUMERIC_COLUMNS_TYPES, true);
     }
 
-    protected function buildNumericArrayValue(array $array, string $relation) : string
+    /**
+     * Build array with numeric values statement.
+     *
+     * @param array $value Array with numeric values
+     *
+     * @return string Array with numeric values statement
+     */
+    protected function buildNumericArrayValue(array $value, string $relation) : string
     {
-        return $relation.' (' . implode(',', $array) . ')';
+        return $relation.' (' . implode(',', $value) . ')';
     }
 
-    protected function buildStringArrayValue(array $array, string $relation) : string
+    /**
+     * Build array string value statement.
+     *
+     * @param array $value Array with string values
+     *
+     * @return string Array with string values statement
+     */
+    protected function buildStringArrayValue(array $value, string $relation) : string
     {
-        return $relation.' ("' . implode('","', $array) . '")';
+        return $relation.' ("' . implode('","', $value) . '")';
     }
 
-    protected function buildArrayValue(string $columnType, array $array, string $relation = 'IN') : string
+    /**
+     * Build array argument value statement.
+     *
+     * @param string $columnType Table column type
+     * @param array $value Table column array value
+     * @param string $relation Table column relation to value
+     *
+     * @return string Array argument relation with value statement
+     */
+    protected function buildArrayValue(string $columnType, array $value, string $relation = 'IN') : string
     {
         $relation = $relation === ArgumentInterface::NOT_EQUAL ? 'NOT IN' : 'IN';
 
         return $this->isColumnNumeric($columnType)
-            ? $this->buildNumericArrayValue($array, $relation)
-            : $this->buildStringArrayValue($array, $relation);
+            ? $this->buildNumericArrayValue($value, $relation)
+            : $this->buildStringArrayValue($value, $relation);
     }
 
+    /**
+     * Build not array numeric value statement.
+     *
+     * @param mixed $value Numeric value
+     *
+     * @return string Not array numeric value statement
+     */
     protected function buildNumericValue($value) : string
     {
         return (string)$value;
     }
 
-    protected function buildStringValue($value) : string
+    /**
+     * Build not array string value statement.
+     *
+     * @param string $value String value
+     *
+     * @return string Not array string value statement
+     */
+    protected function buildStringValue(string $value) : string
     {
         return '"'.$value.'"';
     }
 
+    /**
+     * Build not array argument value statement.
+     *
+     * @param string $columnType Table column type
+     * @param mixed $value Table column value
+     * @param string $relation Table column relation to value
+     *
+     * @return string Not array argument relation with value statement
+     */
     protected function buildValue(string $columnType, $value, string $relation) : string
     {
         return $this->isColumnNumeric($columnType)
@@ -197,6 +250,15 @@ class SQLBuilder
             : $relation . ' ' . $this->buildStringValue($value);
     }
 
+    /**
+     * Build argument value statement.
+     *
+     * @param string|array $value Argument column value
+     * @param string $columnType Argument column type
+     * @param string $relation Argument relation
+     *
+     * @return string Argument relation with value statement
+     */
     protected function buildArgumentValue($value, string $columnType, string $relation)
     {
         return is_array($value)
