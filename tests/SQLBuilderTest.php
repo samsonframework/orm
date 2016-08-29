@@ -134,11 +134,11 @@ class SQLBuilderTest extends TestCase
         $condition2->add('testColumn3', 'test', ArgumentInterface::NOT_EQUAL);
         $condition2->add('testColumn3', 'test', ArgumentInterface::NOTNULL);
         $condition2->add('testColumn3 = "test"', '', ArgumentInterface::OWN);
-        $condition2->add('testColumn2', [1,2], ArgumentInterface::NOT_EQUAL);
+        $condition2->add('testColumn', [1,2], ArgumentInterface::NOT_EQUAL);
         $condition->addCondition($condition2);
 
         static::assertEquals(
-            '(testColumn=11) AND ((testColumn2 IN ("test","test2","test3")) OR (testColumn3!="test") OR (testColumn3 IS NOT NULL ) OR (testColumn3 = "test") OR (testColumn2 NOT  IN ("1","2")))',
+            '(testColumn = 11) AND ((testColumn2 IN ("test","test2","test3")) OR (testColumn3 != "test") OR (testColumn3 IS NOT NULL) OR (testColumn3 = "test") OR (testColumn NOT IN (1,2)))',
             $this->sqlBuilder->buildWhereStatement($this->metadata, $condition)
         );
     }

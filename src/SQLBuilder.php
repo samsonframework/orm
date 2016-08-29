@@ -138,6 +138,44 @@ class SQLBuilder
         return '(' . implode(') ' . $condition->relation . ' (', $conditions) . ')';
     }
 
+    protected function buildCondition(string $columnName, string $relation = '', string $value = '') : string
+    {
+        return trim($columnName . ' ' . $relation . ' ' . $value);
+    }
+
+    protected function buildOwnCondition(string $ownCondition) : string
+    {
+        return $this->buildCondition($ownCondition);
+    }
+
+    protected function buildNullCondition(string $columnName, string $nullRelation) : string
+    {
+        return $this->buildCondition($columnName, $nullRelation);
+    }
+
+    protected function buildArgumentCondition(string $columnName, string $columnType, string $relation, $value)
+    {
+        if (is_array($value)) {
+            // Generate list of values, integer type optimization
+            $arrayValue = $columnType === 'int'
+                ? 'IN (' . implode(',', $value) . ')'
+                : 'IN ("' . implode('","', $value) . '")';
+
+            if ($relation === ArgumentInterface::NOT_EQUAL) {
+                $arrayValue = 'NOT '.$arrayValue;
+            }
+
+            return $this->buildCondition($columnName, $arrayValue);
+        } else { // Regular condition
+            return $this->buildCondition(
+                $columnName,
+                $relation,
+                ($columnType === 'int' ? (string)$value : '"'.$value .'"')
+            );
+        }
+    }
+
+
     /**
      * "Правильно" разпознать переданный аргумент условия запроса к БД
      *
@@ -149,42 +187,17 @@ class SQLBuilder
      */
     protected function parseCondition(Argument $argument, TableMetadata $metadata)
     {
-        // Если аргумент условия - это НЕ массив - оптимизации по более частому условию
-        if ($argument->relation === ArgumentInterface::OWN) {
-            return $argument->field;
-        } elseif (!is_array($argument->value)) {
-            $columnName = $metadata->getTableColumnName($argument->field);
-            $columnType = $metadata->getTableColumnType($columnName);
-            $sql = $columnName;
-
-            if (in_array($argument->relation, [ArgumentInterface::NOTNULL, ArgumentInterface::ISNULL], true)) {
-                return $sql . $argument->relation;
-            } else {
-                return $sql . $argument->relation . ($columnType === 'int' ? $argument->value : '"'.$argument->value .'"');
-            }
-        } else {
-            $columnName = $metadata->getTableColumnName($argument->field);
-            $columnType = $metadata->getTableColumnType($columnName);
-            $sql = $columnName;
-            
-            if (count($argument->value)) {
-                // TODO: Add other numeric types support
-                // TODO: Get types of joined tables fields
-
-                // Generate list of values, integer type optimization
-                $sql_values = $columnType === 'int'
-                    ? ' IN (' . implode(',', $argument->value) . ')'
-                    : ' IN ("' . implode('","', $argument->value) . '")';
-
-                switch ($argument->relation) {
-                    case ArgumentInterface::EQUAL:
-                        return $sql . $sql_values;
-                    case ArgumentInterface::NOT_EQUAL:
-                        return $sql . ' NOT ' . $sql_values;
-                }
-            } else { // If we received a condition with empty array - consider this as failing condition
-                return '1 = 0';
-            }
+        switch ($argument->relation) {
+            case ArgumentInterface::OWN:
+                return $this->buildOwnCondition($argument->field);
+            case ArgumentInterface::ISNULL:
+            case ArgumentInterface::NOTNULL:
+                $columnName = $metadata->getTableColumnName($argument->field);
+                return $this->buildNullCondition($columnName, $argument->relation);
+            default:
+                $columnName = $metadata->getTableColumnName($argument->field);
+                $columnType = $metadata->getTableColumnType($columnName);
+                return $this->buildArgumentCondition($columnName, $columnType, $argument->relation, $argument->value);
         }
     }
 }
