@@ -1,17 +1,20 @@
-<?php
+<?php declare(strict_types=1);
 namespace samsonframework\orm;
 
 use samsonframework\orm\exception\EntityNotFound;
 
 /**
  * Database query builder.
+ *
  * @author Vitaly Iegorov <egorov@samsonos.com>
- * @version 2.0
  */
 class Query extends QueryHandler implements QueryInterface
 {
     /** @var string Class name for interacting with database */
     protected $class_name;
+
+    /** @var array Collection of parent table selected fields */
+    protected $select = [];
 
     /** @var array Collection of entity field names for sorting order */
     protected $sorting = array();
