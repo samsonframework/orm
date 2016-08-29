@@ -135,11 +135,7 @@ class SQLBuilder
             }
         }
 
-        if (count($conditions)) {
-            return '(' . implode(') ' . $condition->relation . ' (', $conditions) . ')';
-        } else {
-            return '';
-        }
+        return '(' . implode(') ' . $condition->relation . ' (', $conditions) . ')';
     }
 
     /**
@@ -153,21 +149,24 @@ class SQLBuilder
      */
     protected function parseCondition(Argument $argument, TableMetadata $metadata)
     {
-        $columnName = $metadata->getTableColumnName($argument->field);
-        $columnType = $metadata->getTableColumnType($columnName);
-        $sql = $columnName;
-
         // Если аргумент условия - это НЕ массив - оптимизации по более частому условию
-        if (!is_array($argument->value)) {
+        if ($argument->relation === ArgumentInterface::OWN) {
+            return $argument->field;
+        } elseif (!is_array($argument->value)) {
+            $columnName = $metadata->getTableColumnName($argument->field);
+            $columnType = $metadata->getTableColumnType($columnName);
+            $sql = $columnName;
+
             if (in_array($argument->relation, [ArgumentInterface::NOTNULL, ArgumentInterface::ISNULL], true)) {
                 return $sql . $argument->relation;
-            } elseif ($argument->relation === ArgumentInterface::OWN) {
-                return $argument->field;
             } else {
                 return $sql . $argument->relation . ($columnType === 'int' ? $argument->value : '"'.$argument->value .'"');
             }
-        } // Если аргумент условия - это массив и в нем есть значения
-        else {
+        } else {
+            $columnName = $metadata->getTableColumnName($argument->field);
+            $columnType = $metadata->getTableColumnType($columnName);
+            $sql = $columnName;
+            
             if (count($argument->value)) {
                 // TODO: Add other numeric types support
                 // TODO: Get types of joined tables fields
