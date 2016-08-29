@@ -216,6 +216,7 @@ class SQLBuilder
      * @param TableMetadata $metadata
      *
      * @return string
+     * @throws \InvalidArgumentException
      */
     protected function parseCondition(Argument $argument, TableMetadata $metadata)
     {
