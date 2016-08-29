@@ -1,10 +1,10 @@
-<?php
+<?php declare(strict_types=1);
 namespace samsonframework\orm;
 
 /**
- * Query condition arguments group
+ * Query condition arguments group.
+ *
  * @author Vitaly Iegorov <egorov@samsonos.com>
- * @version 2.0
  */
 class Condition implements ConditionInterface
 {
@@ -12,12 +12,10 @@ class Condition implements ConditionInterface
     public $relation = ConditionInterface::CONJUNCTION;
 
     /** @var Argument[] Collection of condition arguments */
-    protected $arguments = array();
+    protected $arguments = [];
 
     /**
-     * Add condition argument to this condition group
-     * @param ArgumentInterface $argument Condition argument to be added
-     * @return self Chaining
+     * {@inheritdoc}
      */
     public function addArgument(ArgumentInterface $argument)
     {
@@ -28,9 +26,7 @@ class Condition implements ConditionInterface
     }
 
     /**
-     * Add condition group to this condition group
-     * @param ConditionInterface $condition Condition group to be added
-     * @return self Chaining
+     * {@inheritdoc}
      */
     public function addCondition(ConditionInterface $condition)
     {
@@ -41,19 +37,15 @@ class Condition implements ConditionInterface
     }
 
     /**
-     * @return int Amount of condition group arguments
+     * {@inheritdoc}
      */
     public function size()
     {
-        return sizeof($this->arguments);
+        return count($this->arguments);
     }
 
     /**
-     * Generic condition addiction function
-     * @param string $argument Entity for adding to arguments collection
-     * @param mixed $value Argument value
-     * @param string $relation Relation between argument and value
-     * @return self Chaining
+     * {@inheritdoc}
      */
     public function add($argument, $value, $relation = ArgumentInterface::EQUAL)
     {
@@ -71,14 +63,11 @@ class Condition implements ConditionInterface
      */
     public function __construct($relation = null)
     {
-        $this->relation = isset($relation) ? $relation : ConditionInterface::CONJUNCTION;
+        $this->relation = null !== $relation ? $relation : ConditionInterface::CONJUNCTION;
     }
 
     /**
-     * Return the current element
-     * @link http://php.net/manual/en/iterator.current.php
-     * @return mixed Can return any type.
-     * @since 5.0.0
+     * {@inheritdoc}
      */
     public function current()
     {
@@ -86,10 +75,7 @@ class Condition implements ConditionInterface
     }
 
     /**
-     * Move forward to next element
-     * @link http://php.net/manual/en/iterator.next.php
-     * @return void Any returned value is ignored.
-     * @since 5.0.0
+     * {@inheritdoc}
      */
     public function next()
     {
@@ -97,10 +83,7 @@ class Condition implements ConditionInterface
     }
 
     /**
-     * Return the key of the current element
-     * @link http://php.net/manual/en/iterator.key.php
-     * @return mixed scalar on success, or null on failure.
-     * @since 5.0.0
+     * {@inheritdoc}
      */
     public function key()
     {
@@ -108,11 +91,7 @@ class Condition implements ConditionInterface
     }
 
     /**
-     * Checks if current position is valid
-     * @link http://php.net/manual/en/iterator.valid.php
-     * @return boolean The return value will be casted to boolean and then evaluated.
-     * Returns true on success or false on failure.
-     * @since 5.0.0
+     * {@inheritdoc}
      */
     public function valid()
     {
@@ -120,10 +99,7 @@ class Condition implements ConditionInterface
     }
 
     /**
-     * Rewind the Iterator to the first element
-     * @link http://php.net/manual/en/iterator.rewind.php
-     * @return void Any returned value is ignored.
-     * @since 5.0.0
+     * {@inheritdoc}
      */
     public function rewind()
     {
