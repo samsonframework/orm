@@ -8,9 +8,6 @@ namespace samsonframework\orm;
  */
 class Query extends QueryHandler implements QueryInterface
 {
-    /** @var string Database table className */
-    protected $className;
-
     /** @var TableMetadata */
     protected $metadata;
 
@@ -72,7 +69,7 @@ class Query extends QueryHandler implements QueryInterface
      */
     public function exec() : array
     {
-        return $this->database->fetchObjects($this->buildSQL(), $this->className);
+        return $this->database->fetchObjects($this->buildSQL(), $this->metadata->className);
     }
 
     /**
@@ -112,7 +109,6 @@ class Query extends QueryHandler implements QueryInterface
         $this->sorting = [];
         $this->condition = new Condition();
         $this->metadata = $metadata;
-        $this->className = $metadata->className;
 
         return $this;
     }
@@ -192,7 +188,7 @@ class Query extends QueryHandler implements QueryInterface
      */
     public function orderBy(string $fieldName, string $order = 'ASC') : QueryInterface
     {
-        $this->sorting[] = array($fieldName, $order);
+        $this->sorting[] = [$fieldName, $order];
 
         // Chaining
         return $this;
