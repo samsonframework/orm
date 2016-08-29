@@ -202,10 +202,13 @@ class Database implements DatabaseInterface
                 foreach ($joinedClassNames as $joinedClassName) {
                     if (array_key_exists($joinedClassName::$_primary, $row)) {
                         // Create joined instance and add to parent instance
-                        $joinedInstance = $instance->joined[$joinedClassName][$row[$joinedClassName::$_primary]] = new $joinedClassName($this);
+                        $joinedInstance = new $joinedClassName($this);
 
                         // TODO: We need to change metadata retrieval
                         $this->fillEntityFieldValues($joinedInstance, $joinedClassName::$_attributes, $row);
+
+                        // Store joined instance by primary field value
+                        $instance->joined[$joinedClassName][$row[$joinedClassName::$_primary]] = $joinedInstance;
                     } else {
                         throw new \InvalidArgumentException('Cannot join '.$joinedClassName.' - primary field '.$joinedClassName::$_primary.' not found');
                     }
