@@ -141,16 +141,40 @@ class SQLBuilder
         return '(' . implode(') ' . $condition->relation . ' (', $conditions) . ')';
     }
 
+    /**
+     * Build generic condition statement.
+     *
+     * @param string $columnName Table column name
+     * @param string $relation Table column value relation
+     * @param string $value Table column value
+     *
+     * @return string Generic condition statement
+     */
     protected function buildCondition(string $columnName, string $relation = '', string $value = '') : string
     {
         return trim($columnName . ' ' . $relation . ' ' . $value);
     }
 
+    /**
+     * Build own  condition statement.
+     *
+     * @param string $ownCondition Condition statement
+     *
+     * @return string Own condition statement
+     */
     protected function buildOwnCondition(string $ownCondition) : string
     {
         return $this->buildCondition($ownCondition);
     }
 
+    /**
+     * Build is null/not null condition statement.
+     *
+     * @param string $columnName Table column name
+     * @param string $nullRelation Table column null relation
+     *
+     * @return string Is null/not null condition statement
+     */
     protected function buildNullCondition(string $columnName, string $nullRelation) : string
     {
         return $this->buildCondition($columnName, $nullRelation);
