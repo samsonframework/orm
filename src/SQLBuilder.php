@@ -12,6 +12,8 @@ namespace samsonframework\orm;
  */
 class SQLBuilder
 {
+    const NUMERIC_COLUMNS_TYPES = ['int', 'float', 'longint', 'smallint', 'tinyint'];
+
     /**
      * Build full table column name.
      *
@@ -153,13 +155,57 @@ class SQLBuilder
         return $this->buildCondition($columnName, $nullRelation);
     }
 
+    protected function buildNumericArrayValue(array $array) : string
+    {
+        return 'IN (' . implode(',', $array) . ')';
+    }
+
+    protected function buildStringArrayValue(array $array) : string
+    {
+        return 'IN ("' . implode('","', $array) . '")';
+    }
+
+    protected function isColumnNumeric(string $columnType) : bool
+    {
+        return in_array($columnType, self::NUMERIC_COLUMNS_TYPES, true);
+    }
+
+    protected function buildArrayValue(string $columnType, array $array) : string
+    {
+        return $this->isColumnNumeric($columnType)
+            ? $this->buildNumericArrayValue($array)
+            : $this->buildStringArrayValue($array);
+    }
+
+    protected function buildNumericValue($value) : string
+    {
+        return (string)$value;
+    }
+
+    protected function buildStringValue($value) : string
+    {
+        return '"'.$value.'"';
+    }
+
+    protected function buildValue(string $columnType, $value) : string
+    {
+        return $this->isColumnNumeric($columnType)
+            ? $this->buildNumericValue($value)
+            : $this->buildStringValue($value);
+    }
+
+    protected function buildArgumentValue($value, string $columnType)
+    {
+        return is_array($value)
+            ? $this->buildArrayValue($columnType, $value)
+            : $this->buildValue($columnType, $value);
+    }
+
     protected function buildArgumentCondition(string $columnName, string $columnType, string $relation, $value)
     {
         if (is_array($value)) {
             // Generate list of values, integer type optimization
-            $arrayValue = $columnType === 'int'
-                ? 'IN (' . implode(',', $value) . ')'
-                : 'IN ("' . implode('","', $value) . '")';
+            $arrayValue = $this->buildArrayValue($columnType, $value);
 
             if ($relation === ArgumentInterface::NOT_EQUAL) {
                 $arrayValue = 'NOT '.$arrayValue;
