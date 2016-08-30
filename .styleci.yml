@@ -1,0 +1,11 @@
+preset: PSR2
+
+risky: true
+
+linting: true
+
+finder:
+  exclude:
+    - "tests"
+  name:
+    - "*.php"
