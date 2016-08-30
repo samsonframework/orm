@@ -11,7 +11,7 @@ namespace samsonframework\orm;
  * Conditions arguments relations.
  *
  * @package samsonframework\orm
- * @deprecate
+ * @deprecated
  */
 class Relation implements ArgumentInterface
 {
