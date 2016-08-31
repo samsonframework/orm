@@ -5,7 +5,7 @@ namespace samsonframework\orm;
  * Database query builder.
  *
  * @author Vitaly Iegorov <egorov@samsonos.com>
- * @Service("query")
+ * @\samsonframework\containerannotation\Service("query")
  */
 class Query extends QueryHandler implements QueryInterface
 {
@@ -52,9 +52,19 @@ class Query extends QueryHandler implements QueryInterface
     }
 
     /**
-     * {@inheritdoc}
+     * Execute current query and receive collection of RecordInterface objects from database.
+     * @deprecated Use self::find()
+     * @return RecordInterface[] Database entities collection
      */
     public function exec() : array
+    {
+        return $this->find();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function find() : array
     {
         return $this->database->fetchObjects($this->buildSQL(), $this->metadata->className);
     }
@@ -67,12 +77,24 @@ class Query extends QueryHandler implements QueryInterface
      */
     protected function buildSQL() : string
     {
+        // If none fields are selected - select all fields from parent table
+        $this->select = count($this->select) ? $this->select : [$this->metadata->tableName => '*'];
+
         $sql = $this->sqlBuilder->buildSelectStatement($this->select);
         $sql .= "\n" . $this->sqlBuilder->buildFromStatement(array_merge(array_keys($this->select), $this->joins));
-        $sql .= "\n" . $this->sqlBuilder->buildWhereStatement($this->metadata, $this->condition);
-        $sql .= "\n" . $this->sqlBuilder->buildGroupStatement($this->grouping);
-        $sql .= "\n" . $this->sqlBuilder->buildOrderStatement($this->sorting[0], $this->sorting[1]);
-        $sql .= "\n" . $this->sqlBuilder->buildLimitStatement($this->limitation[0], $this->limitation[1]);
+        $sql .= "\n" . 'WHERE ' . $this->sqlBuilder->buildWhereStatement($this->metadata, $this->condition);
+
+        if (count($this->grouping)) {
+            $sql .= "\n" . $this->sqlBuilder->buildGroupStatement($this->grouping);
+        }
+
+        if (count($this->sorting)) {
+            $sql .= "\n" . $this->sqlBuilder->buildOrderStatement($this->sorting[0], $this->sorting[1]);
+        }
+
+        if (count($this->limitation)) {
+            $sql .= "\n" . $this->sqlBuilder->buildLimitStatement($this->limitation[0], $this->limitation[1]);
+        }
 
         return $sql;
     }
@@ -88,7 +110,7 @@ class Query extends QueryHandler implements QueryInterface
     /**
      * {@inheritdoc}
      */
-    public function first() : RecordInterface
+    public function first()
     {
         $return = $this->limit(1)->exec();
 
@@ -118,13 +140,27 @@ class Query extends QueryHandler implements QueryInterface
     /**
      * {@inheritdoc}
      */
-    public function entity(TableMetadata $metadata) : QueryInterface
+    public function entity($metadata) : QueryInterface
     {
+        if (is_string($metadata)) {
+            $queryClassName = $metadata . 'Query';
+            if (class_exists($queryClassName)) {
+                $this->metadata = new TableMetadata();
+                $this->metadata->primaryField = $queryClassName::$primaryFieldName;
+                $this->metadata->className = $queryClassName::$identifier;
+                $this->metadata->columnAliases = $queryClassName::$fieldNames;
+                $this->metadata->columns = array_values($queryClassName::$fieldNames);
+                $this->metadata->tableName = $queryClassName::$tableName;
+                $this->metadata->columnTypes = $queryClassName::$fieldTypes;
+            }
+        } else {
+            $this->metadata = $metadata;
+        }
+        
         $this->grouping = [];
         $this->limitation = [];
         $this->sorting = [];
         $this->condition = new Condition();
-        $this->metadata = $metadata;
 
         return $this;
     }

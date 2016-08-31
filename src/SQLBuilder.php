@@ -15,16 +15,15 @@ class SQLBuilder
     const NUMERIC_COLUMNS_TYPES = ['int', 'float', 'longint', 'smallint', 'tinyint'];
 
     /**
-     * Build full table column name.
+     * Build selected fields SELECT statement part.
      *
-     * @param string $tableName  Table name
-     * @param string $columnName Field name
+     * @param array $tableColumns Tables and column names collection
      *
-     * @return string Full table column name
+     * @return string SELECT statement
      */
-    protected function buildFullColumnName(string $tableName, string $columnName) : string
+    public function buildSelectStatement(array $tableColumns) : string
     {
-        return '`'.$tableName.'`.`'.$columnName.'`';
+        return 'SELECT ' . implode(', ', $this->buildFullColumnNames($tableColumns));
     }
 
     /**
@@ -48,15 +47,16 @@ class SQLBuilder
     }
 
     /**
-     * Build selected fields SELECT statement part.
+     * Build full table column name.
      *
-     * @param array $tableColumns Tables and column names collection
+     * @param string $tableName  Table name
+     * @param string $columnName Field name
      *
-     * @return string SELECT statement
+     * @return string Full table column name
      */
-    public function buildSelectStatement(array $tableColumns) : string
+    protected function buildFullColumnName(string $tableName, string $columnName) : string
     {
-        return 'SELECT '.implode(', ', $this->buildFullColumnNames($tableColumns));
+        return '`' . $tableName . '`.' . ($columnName === '*' ? '*' : '`' . $columnName . '`');
     }
 
     /**
@@ -142,17 +142,34 @@ class SQLBuilder
     }
 
     /**
-     * Build generic condition statement.
+     * Build argument condition.
      *
-     * @param string $columnName Table column name
-     * @param string $relation Table column value relation
-     * @param string $value Table column value
+     * @param Argument      $argument Condition argument
+     * @param TableMetadata $metadata Table metadata
      *
-     * @return string Generic condition statement
+     * @return string Argument condition statement
+     * @throws \InvalidArgumentException If argument column does not exist
      */
-    protected function buildCondition(string $columnName, string $relation = '', string $value = '') : string
+    protected function buildArgumentCondition(Argument $argument, TableMetadata $metadata)
     {
-        return trim($columnName . ' ' . $relation . ' ' . $value);
+        switch ($argument->relation) {
+            case ArgumentInterface::OWN:
+                return $this->buildOwnCondition($argument->field);
+            case ArgumentInterface::ISNULL:
+            case ArgumentInterface::NOTNULL:
+                $columnName = $metadata->getTableColumnName($argument->field);
+                return $this->buildNullCondition($columnName, $argument->relation);
+            default:
+                $columnName = $metadata->getTableColumnName($argument->field);
+                return $this->buildCondition(
+                    $columnName,
+                    $this->buildArgumentValue(
+                        $argument->value,
+                        $metadata->getTableColumnType($columnName),
+                        $argument->relation
+                    )
+                );
+        }
     }
 
     /**
@@ -168,6 +185,20 @@ class SQLBuilder
     }
 
     /**
+     * Build generic condition statement.
+     *
+     * @param string $columnName Table column name
+     * @param string $relation   Table column value relation
+     * @param string $value      Table column value
+     *
+     * @return string Generic condition statement
+     */
+    protected function buildCondition(string $columnName, string $relation = '', string $value = '') : string
+    {
+        return trim($columnName . ' ' . $relation . ' ' . $value);
+    }
+
+    /**
      * Build is null/not null condition statement.
      *
      * @param string $columnName Table column name
@@ -178,6 +209,40 @@ class SQLBuilder
     protected function buildNullCondition(string $columnName, string $nullRelation) : string
     {
         return $this->buildCondition($columnName, $nullRelation);
+    }
+
+    /**
+     * Build argument value statement.
+     *
+     * @param string|array $value      Argument column value
+     * @param string       $columnType Argument column type
+     * @param string       $relation   Argument relation
+     *
+     * @return string Argument relation with value statement
+     */
+    protected function buildArgumentValue($value, string $columnType, string $relation)
+    {
+        return is_array($value)
+            ? $this->buildArrayValue($columnType, $value, $relation)
+            : $this->buildValue($columnType, $value, $relation);
+    }
+
+    /**
+     * Build array argument value statement.
+     *
+     * @param string $columnType Table column type
+     * @param array  $value      Table column array value
+     * @param string $relation   Table column relation to value
+     *
+     * @return string Array argument relation with value statement
+     */
+    protected function buildArrayValue(string $columnType, array $value, string $relation = 'IN') : string
+    {
+        $relation = $relation === ArgumentInterface::NOT_EQUAL ? 'NOT IN' : 'IN';
+
+        return $this->isColumnNumeric($columnType)
+            ? $this->buildNumericArrayValue($value, $relation)
+            : $this->buildStringArrayValue($value, $relation);
     }
 
     /**
@@ -219,21 +284,19 @@ class SQLBuilder
     }
 
     /**
-     * Build array argument value statement.
+     * Build not array argument value statement.
      *
      * @param string $columnType Table column type
-     * @param array $value Table column array value
-     * @param string $relation Table column relation to value
+     * @param mixed  $value      Table column value
+     * @param string $relation   Table column relation to value
      *
-     * @return string Array argument relation with value statement
+     * @return string Not array argument relation with value statement
      */
-    protected function buildArrayValue(string $columnType, array $value, string $relation = 'IN') : string
+    protected function buildValue(string $columnType, $value, string $relation) : string
     {
-        $relation = $relation === ArgumentInterface::NOT_EQUAL ? 'NOT IN' : 'IN';
-
         return $this->isColumnNumeric($columnType)
-            ? $this->buildNumericArrayValue($value, $relation)
-            : $this->buildStringArrayValue($value, $relation);
+            ? $relation . ' ' . $this->buildNumericValue($value)
+            : $relation . ' ' . $this->buildStringValue($value);
     }
 
     /**
@@ -258,68 +321,5 @@ class SQLBuilder
     protected function buildStringValue(string $value) : string
     {
         return '"'.$value.'"';
-    }
-
-    /**
-     * Build not array argument value statement.
-     *
-     * @param string $columnType Table column type
-     * @param mixed $value Table column value
-     * @param string $relation Table column relation to value
-     *
-     * @return string Not array argument relation with value statement
-     */
-    protected function buildValue(string $columnType, $value, string $relation) : string
-    {
-        return $this->isColumnNumeric($columnType)
-            ? $relation . ' ' . $this->buildNumericValue($value)
-            : $relation . ' ' . $this->buildStringValue($value);
-    }
-
-    /**
-     * Build argument value statement.
-     *
-     * @param string|array $value Argument column value
-     * @param string $columnType Argument column type
-     * @param string $relation Argument relation
-     *
-     * @return string Argument relation with value statement
-     */
-    protected function buildArgumentValue($value, string $columnType, string $relation)
-    {
-        return is_array($value)
-            ? $this->buildArrayValue($columnType, $value, $relation)
-            : $this->buildValue($columnType, $value, $relation);
-    }
-
-    /**
-     * Build argument condition.
-     *
-     * @param Argument      $argument Condition argument
-     * @param TableMetadata $metadata Table metadata
-     *
-     * @return string Argument condition statement
-     * @throws \InvalidArgumentException If argument column does not exist
-     */
-    protected function buildArgumentCondition(Argument $argument, TableMetadata $metadata)
-    {
-        switch ($argument->relation) {
-            case ArgumentInterface::OWN:
-                return $this->buildOwnCondition($argument->field);
-            case ArgumentInterface::ISNULL:
-            case ArgumentInterface::NOTNULL:
-                $columnName = $metadata->getTableColumnName($argument->field);
-                return $this->buildNullCondition($columnName, $argument->relation);
-            default:
-                $columnName = $metadata->getTableColumnName($argument->field);
-                return $this->buildCondition(
-                    $columnName,
-                    $this->buildArgumentValue(
-                        $argument->value,
-                        $metadata->getTableColumnType($columnName),
-                        $argument->relation
-                    )
-                );
-        }
     }
 }
