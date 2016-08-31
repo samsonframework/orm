@@ -36,28 +36,13 @@ class Query extends QueryHandler implements QueryInterface
     protected $sqlBuilder;
 
     /**
-     * Build SQL statement from this query.
-     *
-     * @return string SQL statement
-     * @throws \InvalidArgumentException
-     */
-    protected function buildSQL() : string
-    {
-        $sql = $this->sqlBuilder->buildSelectStatement($this->select);
-        $sql .= "\n".$this->sqlBuilder->buildFromStatement(array_merge(array_keys($this->select), $this->joins));
-        $sql .= "\n".$this->sqlBuilder->buildWhereStatement($this->metadata, $this->condition);
-        $sql .= "\n".$this->sqlBuilder->buildGroupStatement($this->grouping);
-        $sql .= "\n".$this->sqlBuilder->buildOrderStatement($this->sorting[0], $this->sorting[1]);
-        $sql .= "\n".$this->sqlBuilder->buildLimitStatement($this->limitation[0], $this->limitation[1]);
-
-        return $sql;
-    }
-
-    /**
      * Query constructor.
      *
      * @param               Database Database instance
      * @param SQLBuilder    $sqlBuilder
+     *
+     * @\samsonframework\containerannotation\InjectArgument(database="\samsonframework\orm\Database")
+     * @\samsonframework\containerannotation\InjectArgument(sqlBuilder="\samsonframework\orm\SQLBuilder")
      */
     public function __construct(Database $database, SQLBuilder $sqlBuilder)
     {
@@ -71,6 +56,24 @@ class Query extends QueryHandler implements QueryInterface
     public function exec() : array
     {
         return $this->database->fetchObjects($this->buildSQL(), $this->metadata->className);
+    }
+
+    /**
+     * Build SQL statement from this query.
+     *
+     * @return string SQL statement
+     * @throws \InvalidArgumentException
+     */
+    protected function buildSQL() : string
+    {
+        $sql = $this->sqlBuilder->buildSelectStatement($this->select);
+        $sql .= "\n" . $this->sqlBuilder->buildFromStatement(array_merge(array_keys($this->select), $this->joins));
+        $sql .= "\n" . $this->sqlBuilder->buildWhereStatement($this->metadata, $this->condition);
+        $sql .= "\n" . $this->sqlBuilder->buildGroupStatement($this->grouping);
+        $sql .= "\n" . $this->sqlBuilder->buildOrderStatement($this->sorting[0], $this->sorting[1]);
+        $sql .= "\n" . $this->sqlBuilder->buildLimitStatement($this->limitation[0], $this->limitation[1]);
+
+        return $sql;
     }
 
     /**
@@ -89,6 +92,17 @@ class Query extends QueryHandler implements QueryInterface
         $return = $this->limit(1)->exec();
 
         return count($return) ? array_shift($return) : null;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function limit(int $quantity, int $offset = 0) : QueryInterface
+    {
+        $this->limitation = [$quantity, $offset];
+
+        // Chaining
+        return $this;
     }
 
     /**
@@ -120,32 +134,6 @@ class Query extends QueryHandler implements QueryInterface
     public function whereCondition(ConditionInterface $condition) : QueryInterface
     {
         $this->condition->addCondition($condition);
-
-        return $this;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function where(
-        string $fieldName,
-        $fieldValue = null,
-        string $relation = ArgumentInterface::EQUAL
-    ) : QueryInterface
-    {
-        // Handle empty field value passing to avoid unexpected behaviour
-        if ($fieldValue !== null) {
-            $relation = ArgumentInterface::ISNULL;
-            $fieldValue = '';
-        } elseif (is_array($fieldValue) && !count($fieldValue)) {
-            // TODO: We consider empty array passed as condition value as NULL, illegal condition
-            $relation = ArgumentInterface::EQUAL;
-            $fieldName = '1';
-            $fieldValue = '0';
-        }
-
-        // Add condition argument
-        $this->condition->add($fieldName, $fieldValue, $relation);
 
         return $this;
     }
@@ -185,17 +173,6 @@ class Query extends QueryHandler implements QueryInterface
     /**
      * {@inheritdoc}
      */
-    public function limit(int $quantity, int $offset = 0) : QueryInterface
-    {
-        $this->limitation = [$quantity, $offset];
-
-        // Chaining
-        return $this;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
     public function orderBy(string $tableName, string $fieldName, string $order = 'ASC') : QueryInterface
     {
         $this->sorting[$tableName][] = [$fieldName, $order];
@@ -210,6 +187,32 @@ class Query extends QueryHandler implements QueryInterface
     public function isNull(string $fieldName) : QueryInterface
     {
         return $this->where($fieldName, '', ArgumentInterface::ISNULL);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function where(
+        string $fieldName,
+        $fieldValue = null,
+        string $relation = ArgumentInterface::EQUAL
+    ) : QueryInterface
+    {
+        // Handle empty field value passing to avoid unexpected behaviour
+        if ($fieldValue !== null) {
+            $relation = ArgumentInterface::ISNULL;
+            $fieldValue = '';
+        } elseif (is_array($fieldValue) && !count($fieldValue)) {
+            // TODO: We consider empty array passed as condition value as NULL, illegal condition
+            $relation = ArgumentInterface::EQUAL;
+            $fieldName = '1';
+            $fieldValue = '0';
+        }
+
+        // Add condition argument
+        $this->condition->add($fieldName, $fieldValue, $relation);
+
+        return $this;
     }
 
     /**

@@ -15,7 +15,7 @@ class Record implements RenderInterface, \ArrayAccess, RecordInterface
     public static $instances = array();
 
     /** Collection of class fields that would not be passed to module view */
-    public static $restricted = array('attached', 'oneToOne', 'oneToMany', 'className');
+    public static $restricted = array('attached', 'oneToOne', 'oneToMany', 'value');
     
     /** @var string Primary key column name */
     public static $_primary;
@@ -81,6 +81,21 @@ class Record implements RenderInterface, \ArrayAccess, RecordInterface
     protected $database;
     
     /**
+     * Record constructor.
+     *
+     * @param DatabaseInterface|null $database
+     * @param QueryInterface|null    $query
+     */
+    public function __construct(DatabaseInterface $database)
+    {
+        // Get database layer
+        $this->database = $database;
+
+        // Get current class name if none is passed
+        $this->className = get_class($this);
+    }
+
+    /**
      * Find database record by primary key value.
      * This is generic method that should be used in nested classes to find its
      * records by some its primary key value.
@@ -107,7 +122,7 @@ class Record implements RenderInterface, \ArrayAccess, RecordInterface
         // Return bool or record depending on parameters passed
         return func_num_args() > 2 ? isset($return) : $return;
     }
-    
+
     /**
      * Find database record by column name and its value.
      * This is generic method that should be used in nested classes to find its
@@ -160,19 +175,52 @@ class Record implements RenderInterface, \ArrayAccess, RecordInterface
         return array_diff(array_keys(get_object_vars($this)), $ignore);
     }
 
-    /**
-     * Record constructor.
-     *
-     * @param DatabaseInterface|null $database
-     * @param QueryInterface|null    $query
-     */
-    public function __construct(DatabaseInterface $database)
+    /**    @see idbRecord::delete() */
+    public function delete()
     {
-        // Get database layer
-        $this->database = $database;
+        // Если запись привязана к БД то удалим её оттуда
+        if ($this->attached) {
+            $this->database->delete($this->className, $this);
+        }
+    }
 
-        // Get current class name if none is passed
-        $this->className = get_class($this);
+    /** Special method called when object has been filled with data */
+    public function filled()
+    {
+
+    }
+
+    /**
+     * Обработчик клонирования записи
+     * Этот метод выполняется при системном вызове функции clone
+     * и выполняет создание записи в БД и привязку клонированного объекта к ней
+     */
+    public function __clone()
+    {
+        // Выполним создание записи в БД
+        $this->id = $this->database->create($this->className, $this);
+
+        // Установим флаг что мы привязались к БД
+        $this->attached = true;
+
+        // Сохраним запись в БД
+        $this->save();
+    }
+
+    /**
+     * @see idbRecord::save()
+     */
+    public function save()
+    {
+        // Если данный объект еще привязан к записи в БД - выполним обновление записи в БД
+        if ($this->attached) {
+            $this->database->update($this->className, $this);
+        } else { // Иначе создадим новую запись с привязкой к данному объекту
+            $this->create();
+        }
+
+        // Store instance in cache
+        self::$instances[$this->className][$this->id] = &$this;
     }
 
     /**
@@ -207,55 +255,6 @@ class Record implements RenderInterface, \ArrayAccess, RecordInterface
             // Установим флаг что мы привязались к БД
             $this->attached = true;
         }
-    }
-
-    /**
-     * @see idbRecord::save()
-     */
-    public function save()
-    {
-        // Если данный объект еще привязан к записи в БД - выполним обновление записи в БД
-        if ($this->attached) {
-            $this->database->update($this->className, $this);
-        } else { // Иначе создадим новую запись с привязкой к данному объекту
-            $this->create();
-        }
-
-        // Store instance in cache
-        self::$instances[$this->className][$this->id] = & $this;
-    }
-
-    /**    @see idbRecord::delete() */
-    public function delete()
-    {
-        // Если запись привязана к БД то удалим её оттуда
-        if ($this->attached) {
-            $this->database->delete($this->className, $this);
-        }
-    }
-
-    /** Special method called when object has been filled with data */
-    public function filled()
-    {
-
-    }
-
-
-    /**
-     * Обработчик клонирования записи
-     * Этот метод выполняется при системном вызове функции clone
-     * и выполняет создание записи в БД и привязку клонированного объекта к ней
-     */
-    public function __clone()
-    {
-        // Выполним создание записи в БД
-        $this->id = $this->database->create($this->className, $this);
-
-        // Установим флаг что мы привязались к БД
-        $this->attached = true;
-
-        // Сохраним запись в БД
-        $this->save();
     }
 
     /** @see \samson\core\iModuleViewable::toView() */

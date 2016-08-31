@@ -21,9 +21,6 @@ class Database implements DatabaseInterface
     /** @var \PDO Database driver */
     protected $driver;
 
-    /** @var string Database name */
-    protected $database;
-
     /**
      * Database constructor.
      *
@@ -51,25 +48,16 @@ class Database implements DatabaseInterface
     }
 
     /**
-     * {@inheritdoc}
-     */
-    public function count(string $sql) : int
-    {
-        // Modify query SQL and add counting
-        $result = $this->fetchArray('SELECT Count(*) as __Count FROM (' . $sql . ') as __table');
-
-        return array_key_exists(0, $result) ? (int)$result[0]['__Count'] : 0;
-    }
-
-    /**
-     * Quote variable for security reasons.
+     * Execute SQL query.
      *
-     * @param string $value
-     * @return string Quoted value
+     * @param string $sql SQL statement
+     *
+     * @deprecated Use self::execute()
+     * @return mixed Driver result
      */
-    protected function quote($value)
+    public function fetch(string $sql)
     {
-        return $this->driver->quote($value);
+        return $this->fetchArray($sql);
     }
 
     /**
@@ -78,6 +66,25 @@ class Database implements DatabaseInterface
     public function fetchArray(string $sql) : array
     {
         return $this->driver->query($sql)->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function database() : string
+    {
+        return $this->driver->query('select database()')->fetchColumn();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function count(string $sql) : int
+    {
+        // Modify query SQL and add counting
+        $result = $this->fetchArray('SELECT Count(*) as __Count FROM (' . $sql . ') as __table');
+
+        return array_key_exists(0, $result) ? (int)$result[0]['__Count'] : 0;
     }
 
     /**
@@ -115,56 +122,6 @@ class Database implements DatabaseInterface
     }
 
     /**
-     * Regroup database rows by primary field value.
-     *
-     * @param array  $rows Collection of records received from database
-     * @param string $primaryField Primary field name for grouping
-     *
-     * @return array Grouped rows by primary field value
-     */
-    protected function groupResults(array $rows, string $primaryField) : array
-    {
-        /** @var array $grouped Collection of database rows grouped by primary field value */
-        $grouped = [];
-
-        // Iterate result set
-        for ($i = 0, $rowsCount = count($rows); $i < $rowsCount; $i++) {
-            $row = $rows[$i];
-
-            // Group by primary field value
-            $grouped[$row[$primaryField]][] = $row;
-        }
-
-        return $grouped;
-    }
-
-    /**
-     * Fill entity instance fields from row column values according to entity className attributes.
-     *
-     * @param mixed $instance   Entity instance
-     * @param array $attributes Metadata entity attributes
-     * @param array $row        Database results row
-     *
-     * @throws \InvalidArgumentException
-     */
-    protected function fillEntityFieldValues($instance, array $attributes, array $row)
-    {
-        // Iterate attribute className
-        foreach ($attributes as $alias) {
-            // If database row has aliased field column
-            if (array_key_exists($alias, $row)) {
-                // Store attribute value
-                $instance->$alias = $row[$alias];
-            } else {
-                throw new \InvalidArgumentException('Database row does not have requested column:'.$alias);
-            }
-        }
-
-        // Call handler for object filling
-        $instance->filled();
-    }
-
-    /**
      * Create entity instances and its joined entities.
      *
      * @param array           $rows
@@ -194,14 +151,14 @@ class Database implements DatabaseInterface
                         // Create joined instance and add to parent instance
                         $joinedInstance = new $joinMetadata->className($this);
 
-                        // TODO: We need to change className retrieval
+                        // TODO: We need to change value retrieval
                         $this->fillEntityFieldValues($joinedInstance, $joinMetadata->columns, $row);
 
                         // Store joined instance by primary field value
                         $instance->joined[$joinMetadata->className][$row[$joinMetadata->primaryField]] = $joinedInstance;
                     } else {
                         throw new \InvalidArgumentException(
-                            'Cannot join '.$joinMetadata->className.' - primary field '.$joinMetadata->primaryField.' not found'
+                            'Cannot join ' . $joinMetadata->className . ' - primary field ' . $joinMetadata->primaryField . ' not found'
                         );
                     }
                 }
@@ -209,5 +166,67 @@ class Database implements DatabaseInterface
         }
 
         return $objects;
+    }
+
+    /**
+     * Regroup database rows by primary field value.
+     *
+     * @param array  $rows Collection of records received from database
+     * @param string $primaryField Primary field name for grouping
+     *
+     * @return array Grouped rows by primary field value
+     */
+    protected function groupResults(array $rows, string $primaryField) : array
+    {
+        /** @var array $grouped Collection of database rows grouped by primary field value */
+        $grouped = [];
+
+        // Iterate result set
+        for ($i = 0, $rowsCount = count($rows); $i < $rowsCount; $i++) {
+            $row = $rows[$i];
+
+            // Group by primary field value
+            $grouped[$row[$primaryField]][] = $row;
+        }
+
+        return $grouped;
+    }
+
+    /**
+     * Fill entity instance fields from row column values according to entity value attributes.
+     *
+     * @param mixed $instance   Entity instance
+     * @param array $attributes Metadata entity attributes
+     * @param array $row        Database results row
+     *
+     * @throws \InvalidArgumentException
+     */
+    protected function fillEntityFieldValues($instance, array $attributes, array $row)
+    {
+        // Iterate attribute value
+        foreach ($attributes as $alias) {
+            // If database row has aliased field column
+            if (array_key_exists($alias, $row)) {
+                // Store attribute value
+                $instance->$alias = $row[$alias];
+            } else {
+                throw new \InvalidArgumentException('Database row does not have requested column:'.$alias);
+            }
+        }
+
+        // Call handler for object filling
+        $instance->filled();
+    }
+
+    /**
+     * Quote variable for security reasons.
+     *
+     * @param string $value
+     *
+     * @return string Quoted value
+     */
+    protected function quote($value)
+    {
+        return $this->driver->quote($value);
     }
 }
