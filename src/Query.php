@@ -5,6 +5,7 @@ namespace samsonframework\orm;
  * Database query builder.
  *
  * @author Vitaly Iegorov <egorov@samsonos.com>
+ * @Service("query")
  */
 class Query extends QueryHandler implements QueryInterface
 {
