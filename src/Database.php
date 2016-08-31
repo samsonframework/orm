@@ -11,6 +11,7 @@ namespace samsonframework\orm;
  * Database management class.
  *
  * @package samsonframework\orm
+ * @\samsonframework\containerannotation\Service("database")
  */
 class Database implements DatabaseInterface
 {
@@ -27,6 +28,8 @@ class Database implements DatabaseInterface
      * Database constructor.
      *
      * @param \PDO $driver
+     *
+     * @\samsonframework\containerannotation\InjectArgument(driver="\PDO")
      */
     public function __construct(\PDO $driver)
     {
