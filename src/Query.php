@@ -203,4 +203,44 @@ class Query extends QueryHandler implements QueryInterface
         // Chaining
         return $this;
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function isNull(string $fieldName) : QueryInterface
+    {
+        return $this->where($fieldName, '', ArgumentInterface::ISNULL);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function notNull(string $fieldName) : QueryInterface
+    {
+        return $this->where($fieldName, '', ArgumentInterface::NOTNULL);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function notEmpty(string $fieldName) : QueryInterface
+    {
+        return $this->where($fieldName, '', ArgumentInterface::NOT_EQUAL);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function like(string $fieldName, string $value = '') : QueryInterface
+    {
+        return $this->where($fieldName, $value, ArgumentInterface::LIKE);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function primary($value) : QueryInterface
+    {
+        return $this->where($this->metadata->primaryField, $value);
+    }
 }
