@@ -146,7 +146,7 @@ class Query extends QueryHandler implements QueryInterface
     public function className(string $metadata) : QueryInterface
     {
         // Capitalize and add old namespace
-        return $this->entity(strpos('\\', $metadata) === false ? '\samson\activerecord\\' . ucfirst($metadata) : $metadata);
+        return $this->entity(strpos('\\', $metadata) === false ? 'samsoncms\api\generated\\' . ucfirst($metadata) : $metadata);
     }
 
     /**
@@ -164,6 +164,44 @@ class Query extends QueryHandler implements QueryInterface
         $this->limitation = [];
         $this->sorting = [];
         $this->condition = new Condition();
+
+        return $this;
+    }
+
+    /**
+     * @param        $field
+     * @param        $value
+     * @param string $relation
+     * @deprecated Use where()
+     * @return QueryInterface
+     */
+    public function cond($field, $value, $relation = ArgumentInterface::EQUAL)
+    {
+        return $this->where($field, $value, $relation);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function where(
+        string $fieldName,
+        $fieldValue = null,
+        string $relation = ArgumentInterface::EQUAL
+    ) : QueryInterface
+    {
+        // Handle empty field value passing to avoid unexpected behaviour
+        if ($fieldValue !== null) {
+            $relation = ArgumentInterface::ISNULL;
+            $fieldValue = '';
+        } elseif (is_array($fieldValue) && !count($fieldValue)) {
+            // TODO: We consider empty array passed as condition value as NULL, illegal condition
+            $relation = ArgumentInterface::EQUAL;
+            $fieldName = '1';
+            $fieldValue = '0';
+        }
+
+        // Add condition argument
+        $this->condition->add($fieldName, $fieldValue, $relation);
 
         return $this;
     }
@@ -227,32 +265,6 @@ class Query extends QueryHandler implements QueryInterface
     public function isNull(string $fieldName) : QueryInterface
     {
         return $this->where($fieldName, '', ArgumentInterface::ISNULL);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function where(
-        string $fieldName,
-        $fieldValue = null,
-        string $relation = ArgumentInterface::EQUAL
-    ) : QueryInterface
-    {
-        // Handle empty field value passing to avoid unexpected behaviour
-        if ($fieldValue !== null) {
-            $relation = ArgumentInterface::ISNULL;
-            $fieldValue = '';
-        } elseif (is_array($fieldValue) && !count($fieldValue)) {
-            // TODO: We consider empty array passed as condition value as NULL, illegal condition
-            $relation = ArgumentInterface::EQUAL;
-            $fieldName = '1';
-            $fieldValue = '0';
-        }
-
-        // Add condition argument
-        $this->condition->add($fieldName, $fieldValue, $relation);
-
-        return $this;
     }
 
     /**
