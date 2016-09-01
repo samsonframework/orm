@@ -159,7 +159,9 @@ class Query extends QueryHandler implements QueryInterface
         } else {
             $this->metadata = $metadata;
         }
-        
+
+        $this->select = [];
+        $this->joins = [];
         $this->grouping = [];
         $this->limitation = [];
         $this->sorting = [];
@@ -189,16 +191,16 @@ class Query extends QueryHandler implements QueryInterface
         string $relation = ArgumentInterface::EQUAL
     ) : QueryInterface
     {
-        // Handle empty field value passing to avoid unexpected behaviour
-        if ($fieldValue !== null) {
-            $relation = ArgumentInterface::ISNULL;
-            $fieldValue = '';
-        } elseif (is_array($fieldValue) && !count($fieldValue)) {
-            // TODO: We consider empty array passed as condition value as NULL, illegal condition
-            $relation = ArgumentInterface::EQUAL;
-            $fieldName = '1';
-            $fieldValue = '0';
-        }
+//        // Handle empty field value passing to avoid unexpected behaviour
+//        if ($fieldValue === null) {
+//            $relation = ArgumentInterface::ISNULL;
+//            $fieldValue = '';
+//        } elseif (is_array($fieldValue) && !count($fieldValue)) {
+//            // TODO: We consider empty array passed as condition value as NULL, illegal condition
+//            $relation = ArgumentInterface::EQUAL;
+//            $fieldName = '1';
+//            $fieldValue = '0';
+//        }
 
         // Add condition argument
         $this->condition->add($fieldName, $fieldValue, $relation);
