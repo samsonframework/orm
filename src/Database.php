@@ -57,7 +57,7 @@ class Database implements DatabaseInterface
      */
     public function insert(TableMetadata $tableMetadata, array $columnValues)
     {
-        $this->execute($this->sqlBuilder->buildUpdateStatement($tableMetadata, $columnValues));
+        $this->execute($this->sqlBuilder->buildInsertStatement($tableMetadata, $columnValues));
 
         return $this->driver->lastInsertId();
     }

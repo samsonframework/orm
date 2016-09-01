@@ -14,6 +14,16 @@ class SQLBuilder
 {
     const NUMERIC_COLUMNS_TYPES = ['int', 'float', 'longint', 'smallint', 'tinyint'];
 
+    /**
+     * Build update statement.
+     *
+     * @param TableMetadata  $tableMetadata Table metadata
+     * @param array          $columnValues  Collection of columnName => columnValue
+     * @param Condition|null $condition     Update filtering condition
+     *
+     * @return string Update SQL statement
+     * @throws \InvalidArgumentException
+     */
     public function buildUpdateStatement(TableMetadata $tableMetadata, array $columnValues, Condition $condition = null) : string
     {
         $sql = [];
@@ -250,6 +260,35 @@ class SQLBuilder
     protected function buildNullCondition(string $columnName, string $nullRelation) : string
     {
         return $this->buildCondition($columnName, $nullRelation);
+    }
+
+    /**
+     * Build insert statement.
+     *
+     * @param TableMetadata $tableMetadata Table metadata
+     * @param array         $columnValues  Collection of columnName => columnValue
+     *
+     * @return string Insert SQL statement
+     * @throws \InvalidArgumentException
+     */
+    public function buildInsertStatement(TableMetadata $tableMetadata, array $columnValues) : string
+    {
+        $sql = [];
+        $columnNames = [];
+        foreach ($columnValues as $columnName => $columnValue) {
+            $columnNames[] = $columnName = $tableMetadata->getTableColumnName($columnName);
+            $sql[] = $this->buildFullColumnName($tableMetadata->tableName, $columnName) .
+                $this->buildArgumentValue(
+                    $columnValue,
+                    $tableMetadata->getTableColumnType($columnName),
+                    ArgumentInterface::EQUAL
+                );
+        }
+
+        $sql = 'INSERT INTO `' . $tableMetadata->tableName . '` (`' . implode('`, `', $columnNames) . '`) ';
+        $sql .= 'VALUES (' . implode(', ', $sql) . ')';
+
+        return $sql;
     }
 
     /**
