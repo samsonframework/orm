@@ -138,6 +138,18 @@ class Query extends QueryHandler implements QueryInterface
     }
 
     /**
+     * @param string $metadata
+     *
+     * @deprecated Use entity()
+     * @return QueryInterface
+     */
+    public function className(string $metadata) : QueryInterface
+    {
+        // Capitalize and add old namespace
+        return $this->entity(strpos('\\', $metadata) === false ? '\samson\activerecord\\' . ucfirst($metadata) : $metadata);
+    }
+
+    /**
      * {@inheritdoc}
      */
     public function entity($metadata) : QueryInterface
