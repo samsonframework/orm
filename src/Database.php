@@ -113,10 +113,9 @@ class Database implements DatabaseInterface
     /**
      * {@inheritdoc}
      */
-    public function fetchObjects(string $sql, string $className) : array
+    public function fetchObjects(string $sql, string $className, string $primaryField) : array
     {
         $grouped = [];
-        $primaryField = $className::$_primary;
         foreach ($this->driver->query($sql)->fetchAll(\PDO::FETCH_CLASS, $className) as $instance) {
             $grouped[$instance->$primaryField] = $instance;
         }

@@ -66,7 +66,7 @@ class Query extends QueryHandler implements QueryInterface
      */
     public function find() : array
     {
-        return $this->database->fetchObjects($this->buildSQL(), $this->metadata->className);
+        return $this->database->fetchObjects($this->buildSQL(), $this->metadata->className, $this->metadata->primaryField);
     }
 
     /**
@@ -143,16 +143,7 @@ class Query extends QueryHandler implements QueryInterface
     public function entity($metadata) : QueryInterface
     {
         if (is_string($metadata)) {
-            $queryClassName = $metadata . 'Query';
-            if (class_exists($queryClassName)) {
-                $this->metadata = new TableMetadata();
-                $this->metadata->primaryField = $queryClassName::$primaryFieldName;
-                $this->metadata->className = $queryClassName::$identifier;
-                $this->metadata->columnAliases = $queryClassName::$fieldNames;
-                $this->metadata->columns = array_values($queryClassName::$fieldNames);
-                $this->metadata->tableName = $queryClassName::$tableName;
-                $this->metadata->columnTypes = $queryClassName::$fieldTypes;
-            }
+            $this->metadata = TableMetadata::fromClassName($metadata);
         } else {
             $this->metadata = $metadata;
         }

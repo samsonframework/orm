@@ -18,10 +18,11 @@ class SQLBuilder
     {
         $sql = [];
         foreach ($columnValues as $columnName => $columnValue) {
+            $columnName = $tableMetadata->getTableColumnName($columnName);
             $sql[] = $this->buildFullColumnName($tableMetadata->tableName, $columnName) .
                 $this->buildArgumentValue(
                     $columnValue,
-                    $tableMetadata->columnTypes[$columnName],
+                    $tableMetadata->getTableColumnType($columnName),
                     ArgumentInterface::EQUAL
                 );
         }
