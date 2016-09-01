@@ -81,7 +81,9 @@ class Query extends QueryHandler implements QueryInterface
         $this->select = count($this->select) ? $this->select : [$this->metadata->tableName => '*'];
 
         $sql = $this->sqlBuilder->buildSelectStatement($this->select);
-        $sql .= "\n" . $this->sqlBuilder->buildFromStatement(array_merge(array_keys($this->select), $this->joins));
+        $sql .= "\n" . $this->sqlBuilder->buildFromStatement(
+                array_merge(array_keys($this->select), array_keys($this->joins))
+            );
         $sql .= "\n" . 'WHERE ' . $this->sqlBuilder->buildWhereStatement($this->metadata, $this->condition);
 
         if (count($this->grouping)) {
