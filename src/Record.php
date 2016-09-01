@@ -1,13 +1,17 @@
 <?php declare(strict_types=1);
 namespace samsonframework\orm;
 
-use samson\activerecord\dbQuery;
 use samsonframework\core\RenderInterface;
 
 /**
- * ORM Active record class
+ * ORM Active record class.
+ *
  * @author Vitaly Iegorov <egorov@samsonos.com>
  * @author Nikita Kotenko <kotenko@samsonos.com>
+ *
+ * TODO: Remove render interface
+ * TODO: Remove ArrayAccess interface
+ * TODO: Remove activerecord pattern from entity
  */
 class Record implements RenderInterface, \ArrayAccess, RecordInterface
 {
@@ -16,83 +20,51 @@ class Record implements RenderInterface, \ArrayAccess, RecordInterface
 
     /** Collection of class fields that would not be passed to module view */
     public static $restricted = array('attached', 'oneToOne', 'oneToMany', 'value');
-    
-    /** @var string Primary key column name */
-    public static $_primary;
-
-    /** @var string Entity identifier */
-    public static $_table_name = "structure";
-
-    /** @var array Base entity grouping filed names */
-    public static $_own_group = array();
-
-    /** @var array Collection of entity field names */
-    public static $_attributes = array();
-
-    /** @var array Collection of entity real field names as values and other as keys */
-    public static $_table_attributes = array();
-
-    /** @var array Collection of FROM SQL parts for entity and possible joins */
-    public static $_sql_from = array();
-
-    /** @var array Collection of entity predefined possible join entities */
-    public static $_relations = array();
-
-    /** @var array Collection of possible joined entities field names to aliases */
-    public static $_relation_alias = array();
-
-    /** @var array Collection of possible joined entities relation types */
-    public static $_relation_type = array();
-
-    /** @var array Collection of SELECT SQL parts for entity and possible joins */
-    public static $_sql_select = array();
-
-    /** @var array Collection of entity field types */
-    public static $_types = array();
-
-    /** @var array Collection of entity indexed fields */
-    public static $_indeces = array();
-
-    /** @var array Collection of entity unique fields */
-    public static $_unique = array();
-
-    /** @var array Collection of entity optimized field names with real field names */
-    public static $_map = array();
 
     /** @var array Collection of joined entities */
     public $joined = [];
-
     /** @var int Identifier */
-    public $id = 0;
-
+    public $id;
     /** @var string Entity class name */
     public $className;
-
-    /** @var array Related OTO records grouped by entity class name */
+    /**
+     * @var array Related OTO records grouped by entity class name
+     * @deprecated
+     */
     public $oneToOne = array();
-
-    /** @var array Related OTM records grouped by entity class name */
+    /**
+     * @var array Related OTM records grouped by entity class name
+     * @deprecated
+     */
     public $oneToMany = array();
-
-    /** @var bool Flag if this object has a database record */
+    /**
+     * @var bool Flag if this object has a database record
+     * @deprecated
+     */
     public $attached = false;
-
     /** @var DatabaseInterface Database layer */
     protected $database;
-    
+    /** @var TableMetadata */
+    protected $metadata;
+
     /**
      * Record constructor.
      *
      * @param DatabaseInterface|null $database
-     * @param QueryInterface|null    $query
      */
-    public function __construct(DatabaseInterface $database)
+    public function __construct(DatabaseInterface $database = null)
     {
         // Get database layer
         $this->database = $database;
 
+        // TODO: !IMPORTANT THIS NEEDS TO BE REMOVED!
+        $this->database = $GLOBALS['__core']->getContainer()->getDatabase();
+
         // Get current class name if none is passed
         $this->className = get_class($this);
+
+        // Get table metadata
+        $this->metadata = TableMetadata::fromClassName($this->className);
     }
 
     /**
@@ -163,18 +135,6 @@ class Record implements RenderInterface, \ArrayAccess, RecordInterface
             ->exec();
     }
 
-    /** Serialization handler */
-    public function __sleep()
-    {
-	    $ignore = array('database','_table_name','_own_group','_primary','_attributes',
-		    '_table_attributes','_sql_from','_relations','_relation_alias',
-		    '_relation_type','_sql_select','_types','_indeces','_unique','_map','instances',
-		    'restricted');
-
-        // List of serialized object fields
-        return array_diff(array_keys(get_object_vars($this)), $ignore);
-    }
-
     /**    @see idbRecord::delete() */
     public function delete()
     {
@@ -194,6 +154,7 @@ class Record implements RenderInterface, \ArrayAccess, RecordInterface
      * Обработчик клонирования записи
      * Этот метод выполняется при системном вызове функции clone
      * и выполняет создание записи в БД и привязку клонированного объекта к ней
+     * @deprecated Data entites should be cloned normally
      */
     public function __clone()
     {
@@ -230,15 +191,18 @@ class Record implements RenderInterface, \ArrayAccess, RecordInterface
     {
         // Если запись уже привязана к БД - ничего не делаем
         if (!$this->attached) {
-            // Получим имя класса
-            $className = $this->className;
+            $this->database->insert($this->metadata, (array)$this);
 
-            // Получим переменные для запроса
-            extract($this->database->__get_table_data($className));
+//            // Получим имя класса
+//            $className = $this->className;
+//
+//            // Получим переменные для запроса
+//            extract($this->database->__get_table_data($className));
+//
+//            // Выполним создание записи в БД
+//            // и сразу заполним её значениями атрибутов объекта
+//            $this->id = $this->database->create($className, $this);
 
-            // Выполним создание записи в БД
-            // и сразу заполним её значениями атрибутов объекта
-            $this->id = $this->database->create($className, $this);
 
             // Получим созданную запись из БД
             $db_record = $this->database->find_by_id($className, $this->id);

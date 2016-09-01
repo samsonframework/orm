@@ -21,16 +21,21 @@ class Database implements DatabaseInterface
     /** @var \PDO Database driver */
     protected $driver;
 
+    /** @var  SQLBuilder */
+    protected $sqlBuilder;
+
     /**
      * Database constructor.
      *
      * @param \PDO $driver
      *
      * @\samsonframework\containerannotation\InjectArgument(driver="\PDO")
+     * @\samsonframework\containerannotation\InjectArgument(sqlBuilder="\samsonframework\orm\SQLBuilder")
      */
-    public function __construct(\PDO $driver)
+    public function __construct(\PDO $driver, SQLBuilder $sqlBuilder)
     {
         $this->driver = $driver;
+        $this->sqlBuilder = $sqlBuilder;
 
         // Set correct encodings
         $this->execute("set character_set_client='utf8'");
@@ -45,6 +50,24 @@ class Database implements DatabaseInterface
     {
         // Perform database query
         return $this->driver->prepare($sql)->execute();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function insert(TableMetadata $tableMetadata, array $columnValues)
+    {
+        $this->execute($this->sqlBuilder->buildUpdateStatement($tableMetadata, $columnValues));
+
+        return $this->driver->lastInsertId();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function update(TableMetadata $tableMetadata, array $columnValues, Condition $condition)
+    {
+        return $this->execute($this->sqlBuilder->buildUpdateStatement($tableMetadata, $columnValues, $condition));
     }
 
     /**

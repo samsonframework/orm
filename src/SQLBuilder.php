@@ -14,36 +14,21 @@ class SQLBuilder
 {
     const NUMERIC_COLUMNS_TYPES = ['int', 'float', 'longint', 'smallint', 'tinyint'];
 
-    /**
-     * Build selected fields SELECT statement part.
-     *
-     * @param array $tableColumns Tables and column names collection
-     *
-     * @return string SELECT statement
-     */
-    public function buildSelectStatement(array $tableColumns) : string
+    public function buildUpdateStatement(TableMetadata $tableMetadata, array $columnValues, Condition $condition = null) : string
     {
-        return 'SELECT ' . implode(', ', $this->buildFullColumnNames($tableColumns));
-    }
-
-    /**
-     * Build full table column names collection.
-     *
-     * @param array $tableColumns Tables and column names collection
-     *
-     * @return array Collection of full column names for query
-     */
-    protected function buildFullColumnNames(array $tableColumns) : array
-    {
-        $grouping = [];
-        foreach ($tableColumns as $tableName => $columnNames) {
-            /** @var array $columnNames */
-            foreach ($columnNames = is_array($columnNames) ? $columnNames : [$columnNames] as $columnName) {
-                $grouping[] = $this->buildFullColumnName($tableName, $columnName);
-            }
+        $sql = [];
+        foreach ($columnValues as $columnName => $columnValue) {
+            $sql[] = $this->buildFullColumnName($tableMetadata->tableName, $columnName) .
+                $this->buildArgumentValue(
+                    $columnValue,
+                    $tableMetadata->columnTypes[$columnName],
+                    ArgumentInterface::EQUAL
+                );
         }
 
-        return $grouping;
+        $sql = 'UPDATE `' . $tableMetadata->tableName . '` SET ' . implode(', ', $sql);
+
+        return $sql . ($condition !== null ? $this->buildWhereStatement($tableMetadata, $condition) : '');
     }
 
     /**
@@ -60,60 +45,115 @@ class SQLBuilder
     }
 
     /**
-     * Build FROM statement part.
+     * Build argument value statement.
      *
-     * @param array $tableNames Tables and column names collection
+     * @param string|array $value      Argument column value
+     * @param string       $columnType Argument column type
+     * @param string       $relation   Argument relation
      *
-     * @return string FROM statement
+     * @return string Argument relation with value statement
      */
-    public function buildFromStatement(array $tableNames = []) : string
+    protected function buildArgumentValue($value, string $columnType, string $relation)
     {
-        return 'FROM `'.implode('`, `', $tableNames).'`';
+        return is_array($value)
+            ? $this->buildArrayValue($columnType, $value, $relation)
+            : $this->buildValue($columnType, $value, $relation);
     }
 
     /**
-     * Build grouping statement.
+     * Build array argument value statement.
      *
-     * @param array $tableColumns Tables and column names collection
+     * @param string $columnType Table column type
+     * @param array  $value      Table column array value
+     * @param string $relation   Table column relation to value
      *
-     * @return string Grouping statement
+     * @return string Array argument relation with value statement
      */
-    public function buildGroupStatement(array $tableColumns) : string
+    protected function buildArrayValue(string $columnType, array $value, string $relation = 'IN') : string
     {
-        return 'GROUP BY ' . implode(', ', $this->buildFullColumnNames($tableColumns));
+        $relation = $relation === ArgumentInterface::NOT_EQUAL ? 'NOT IN' : 'IN';
+
+        return $this->isColumnNumeric($columnType)
+            ? $this->buildNumericArrayValue($value, $relation)
+            : $this->buildStringArrayValue($value, $relation);
     }
 
     /**
-     * Build ordering statement.
+     * Define if table column type is numeric.
      *
-     * @param array $tableColumns Tables and column names collection
-     * @param array $orders Collection of columns sorting order
+     * @param string $columnType Table column type
      *
-     * @return string Ordering statement
-     * @throws \InvalidArgumentException
+     * @return bool True if column type is numeric
      */
-    public function buildOrderStatement(array $tableColumns, array $orders) : string
+    protected function isColumnNumeric(string $columnType) : bool
     {
-        $ordering = [];
-        $i = 0;
-        foreach ($this->buildFullColumnNames($tableColumns) as $columnName) {
-            $ordering[] = $columnName.' '. ($orders[$i++] ?? 'ASC');
-        }
-
-        return 'ORDER BY ' . implode(', ', $ordering);
+        return in_array($columnType, self::NUMERIC_COLUMNS_TYPES, true);
     }
 
     /**
-     * Build limitation statement.
+     * Build array with numeric values statement.
      *
-     * @param int $rows Rows amount for limitation
-     * @param int $offset Rows offset
+     * @param array  $value    Array with numeric values
+     * @param string $relation Table column relation to value
      *
-     * @return string Limitation statement
+     * @return string Array with numeric values statement
      */
-    public function buildLimitStatement(int $rows, int $offset = 0) : string
+    protected function buildNumericArrayValue(array $value, string $relation) : string
     {
-        return 'LIMIT ' . $offset . ', ' . $rows;
+        return $relation . ' (' . implode(',', $value) . ')';
+    }
+
+    /**
+     * Build array string value statement.
+     *
+     * @param array  $value    Array with string values
+     * @param string $relation Table column relation to value
+     *
+     * @return string Array with string values statement
+     */
+    protected function buildStringArrayValue(array $value, string $relation) : string
+    {
+        return $relation . ' ("' . implode('","', $value) . '")';
+    }
+
+    /**
+     * Build not array argument value statement.
+     *
+     * @param string $columnType Table column type
+     * @param mixed  $value      Table column value
+     * @param string $relation   Table column relation to value
+     *
+     * @return string Not array argument relation with value statement
+     */
+    protected function buildValue(string $columnType, $value, string $relation) : string
+    {
+        return $this->isColumnNumeric($columnType)
+            ? $relation . ' ' . $this->buildNumericValue($value)
+            : $relation . ' ' . $this->buildStringValue($value);
+    }
+
+    /**
+     * Build not array numeric value statement.
+     *
+     * @param mixed $value Numeric value
+     *
+     * @return string Not array numeric value statement
+     */
+    protected function buildNumericValue($value) : string
+    {
+        return (string)$value;
+    }
+
+    /**
+     * Build not array string value statement.
+     *
+     * @param string $value String value
+     *
+     * @return string Not array string value statement
+     */
+    protected function buildStringValue(string $value) : string
+    {
+        return '"' . $value . '"';
     }
 
     /**
@@ -212,114 +252,91 @@ class SQLBuilder
     }
 
     /**
-     * Build argument value statement.
+     * Build selected fields SELECT statement part.
      *
-     * @param string|array $value      Argument column value
-     * @param string       $columnType Argument column type
-     * @param string       $relation   Argument relation
+     * @param array $tableColumns Tables and column names collection
      *
-     * @return string Argument relation with value statement
+     * @return string SELECT statement
      */
-    protected function buildArgumentValue($value, string $columnType, string $relation)
+    public function buildSelectStatement(array $tableColumns) : string
     {
-        return is_array($value)
-            ? $this->buildArrayValue($columnType, $value, $relation)
-            : $this->buildValue($columnType, $value, $relation);
+        return 'SELECT ' . implode(', ', $this->buildFullColumnNames($tableColumns));
     }
 
     /**
-     * Build array argument value statement.
+     * Build full table column names collection.
      *
-     * @param string $columnType Table column type
-     * @param array  $value      Table column array value
-     * @param string $relation   Table column relation to value
+     * @param array $tableColumns Tables and column names collection
      *
-     * @return string Array argument relation with value statement
+     * @return array Collection of full column names for query
      */
-    protected function buildArrayValue(string $columnType, array $value, string $relation = 'IN') : string
+    protected function buildFullColumnNames(array $tableColumns) : array
     {
-        $relation = $relation === ArgumentInterface::NOT_EQUAL ? 'NOT IN' : 'IN';
+        $grouping = [];
+        foreach ($tableColumns as $tableName => $columnNames) {
+            /** @var array $columnNames */
+            foreach ($columnNames = is_array($columnNames) ? $columnNames : [$columnNames] as $columnName) {
+                $grouping[] = $this->buildFullColumnName($tableName, $columnName);
+            }
+        }
 
-        return $this->isColumnNumeric($columnType)
-            ? $this->buildNumericArrayValue($value, $relation)
-            : $this->buildStringArrayValue($value, $relation);
+        return $grouping;
     }
 
     /**
-     * Define if table column type is numeric.
+     * Build FROM statement part.
      *
-     * @param string $columnType Table column type
+     * @param array $tableNames Tables and column names collection
      *
-     * @return bool True if column type is numeric
+     * @return string FROM statement
      */
-    protected function isColumnNumeric(string $columnType) : bool
+    public function buildFromStatement(array $tableNames = []) : string
     {
-        return in_array($columnType, self::NUMERIC_COLUMNS_TYPES, true);
+        return 'FROM `' . implode('`, `', $tableNames) . '`';
     }
 
     /**
-     * Build array with numeric values statement.
+     * Build grouping statement.
      *
-     * @param array  $value Array with numeric values
-     * @param string $relation Table column relation to value
+     * @param array $tableColumns Tables and column names collection
      *
-     * @return string Array with numeric values statement
+     * @return string Grouping statement
      */
-    protected function buildNumericArrayValue(array $value, string $relation) : string
+    public function buildGroupStatement(array $tableColumns) : string
     {
-        return $relation.' (' . implode(',', $value) . ')';
+        return 'GROUP BY ' . implode(', ', $this->buildFullColumnNames($tableColumns));
     }
 
     /**
-     * Build array string value statement.
+     * Build ordering statement.
      *
-     * @param array $value Array with string values
-     * @param string $relation Table column relation to value
+     * @param array $tableColumns Tables and column names collection
+     * @param array $orders       Collection of columns sorting order
      *
-     * @return string Array with string values statement
+     * @return string Ordering statement
+     * @throws \InvalidArgumentException
      */
-    protected function buildStringArrayValue(array $value, string $relation) : string
+    public function buildOrderStatement(array $tableColumns, array $orders) : string
     {
-        return $relation.' ("' . implode('","', $value) . '")';
+        $ordering = [];
+        $i = 0;
+        foreach ($this->buildFullColumnNames($tableColumns) as $columnName) {
+            $ordering[] = $columnName . ' ' . ($orders[$i++] ?? 'ASC');
+        }
+
+        return 'ORDER BY ' . implode(', ', $ordering);
     }
 
     /**
-     * Build not array argument value statement.
+     * Build limitation statement.
      *
-     * @param string $columnType Table column type
-     * @param mixed  $value      Table column value
-     * @param string $relation   Table column relation to value
+     * @param int $rows   Rows amount for limitation
+     * @param int $offset Rows offset
      *
-     * @return string Not array argument relation with value statement
+     * @return string Limitation statement
      */
-    protected function buildValue(string $columnType, $value, string $relation) : string
+    public function buildLimitStatement(int $rows, int $offset = 0) : string
     {
-        return $this->isColumnNumeric($columnType)
-            ? $relation . ' ' . $this->buildNumericValue($value)
-            : $relation . ' ' . $this->buildStringValue($value);
-    }
-
-    /**
-     * Build not array numeric value statement.
-     *
-     * @param mixed $value Numeric value
-     *
-     * @return string Not array numeric value statement
-     */
-    protected function buildNumericValue($value) : string
-    {
-        return (string)$value;
-    }
-
-    /**
-     * Build not array string value statement.
-     *
-     * @param string $value String value
-     *
-     * @return string Not array string value statement
-     */
-    protected function buildStringValue(string $value) : string
-    {
-        return '"'.$value.'"';
+        return 'LIMIT ' . $offset . ', ' . $rows;
     }
 }

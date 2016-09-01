@@ -33,6 +33,32 @@ class TableMetadata
     public $indexColumns = [];
 
     /**
+     * Create metadata instance from entity class name
+     * @param string $className Entity class name
+     * @deprecated  This is temporary old approach
+     * @return TableMetadata Metadata instance
+     *
+     * @throws \InvalidArgumentException If entity class not found
+     */
+    public static function fromClassName(string $className) : TableMetadata
+    {
+        $queryClassName = $className . 'Query';
+        if (class_exists($queryClassName)) {
+            $metadata = new TableMetadata();
+            $metadata->primaryField = $queryClassName::$primaryFieldName;
+            $metadata->className = $queryClassName::$identifier;
+            $metadata->columnAliases = $queryClassName::$fieldNames;
+            $metadata->columns = array_values($queryClassName::$fieldNames);
+            $metadata->tableName = $queryClassName::$tableName;
+            $metadata->columnTypes = $queryClassName::$fieldTypes;
+
+            return $metadata;
+        }
+
+        throw new \InvalidArgumentException('Cannot create metadata for entity ' . $className);
+    }
+
+    /**
      * Get table column type by column name or alias.
      *
      * @param string $columnNameOrAlias Table column name or alias

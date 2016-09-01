@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types = 1);
 /**
  * Created by PhpStorm.
  * User: VITALYIEGOROV
@@ -9,7 +9,8 @@ namespace samsonframework\orm;
 
 /**
  * Database entity manager.
- * @package samsonframework\orm
+ *
+ * @author Vitaly Egorov <egorov@samsonos.com>
  */
 class Manager
 {
@@ -25,17 +26,17 @@ class Manager
     /** @var array Collection of entity field names and their types */
     protected $fieldsAndTypes = array();
 
-    /** @var Database Database manager */
+    /** @var DatabaseInterface Database manager */
     protected $database;
 
     /**
      * Manager constructor.
      *
-     * @param Database $database database low-level driver
-     * @param string $entityName Entity name
-     * @param array $attributes Key-value collection with field name => type
+     * @param DatabaseInterface $database   database low-level driver
+     * @param string            $entityName Entity name
+     * @param array             $attributes Key-value collection with field name => type
      */
-    public function __construct($database, $entityName, $attributes)
+    public function __construct(DatabaseInterface $database, string $entityName, $attributes)
     {
         $this->database = $database;
         $this->entityName = $entityName;
@@ -43,11 +44,38 @@ class Manager
     }
 
     /**
+     * Store entity into database.
+     *
+     * @param mixed $entity Database entity
+     */
+    public function save($entity)
+    {
+        $fields = $this->getFields($entity);
+//
+//        $this->execute('INSERT INTO `' . $this->entityName . '` (`'
+//            . implode('`,`', array_keys($fields)) . '`) VALUES (' . implode(',', $fields) . ')'
+//        );
+
+// Generate entity fields update command
+//        $fields = array();
+//        foreach ($this->getFields($entity) as $fieldName => $fieldValue) {
+//            $fields[] = '`'.$this->entityName.'`.`'.$fieldName.'` = "'.$fieldValue.'"';
+//        }
+//
+//        $this->execute('UPDATE `' . $this->entityName . '` SET '
+//            . implode(',', $fields)
+//            . ' WHERE `' . $this->entityName . '`.`' . $this->primaryFieldName . '`="'
+//            . $this->quote($entity->id) . '"');
+
+        //$this->database->
+    }
+
+    /**
      * Get new entity instance.
      *
-     * @return RecordInterface New database manager entity instance
+     * @return mixed Entity instance
      */
-    public function instance()
+    public function create()
     {
         return new $this->entityName($this);
     }
