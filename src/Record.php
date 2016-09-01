@@ -200,13 +200,17 @@ class Record implements RenderInterface, \ArrayAccess, RecordInterface
 
             $newIdentifier = $this->database->insert($this->metadata, $attributes);
 
-            $row = $this->database->fetchArray(
+            $rows = $this->database->fetchArray(
                 'SELECT * FROM `' . $this->metadata->tableName . '` WHERE ' .
                 '`' . $this->metadata->tableName . '`.`' . $this->metadata->primaryField . '` = ' . $newIdentifier
             );
 
-            foreach ($this->metadata->columnAliases as $columnAlias => $columnName) {
-                $this->$columnAlias = $row[$columnName];
+            if (count($rows)) {
+                foreach ($this->metadata->columnAliases as $columnAlias => $columnName) {
+                    $this->$columnAlias = $rows[0][$columnName];
+                }
+            } else {
+                throw new \InvalidArgumentException('Failed ' . get_class($this) . ' entoty creation');
             }
 
             // Установим флаг что мы привязались к БД
