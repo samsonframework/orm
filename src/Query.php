@@ -143,12 +143,15 @@ class Query extends QueryHandler implements QueryInterface
      * @param string $metadata
      *
      * @deprecated Use entity()
-     * @return QueryInterface
+     * @return QueryInterface|string
      */
-    public function className(string $metadata) : QueryInterface
+    public function className(string $metadata = null)
     {
-        // Capitalize and add old namespace
-        return $this->entity(strpos('\\', $metadata) === false ? 'samsoncms\api\generated\\' . ucfirst($metadata) : $metadata);
+        if (func_num_args() === 0) {
+            return $this->metadata->className;
+        } else {
+            return $this->entity($metadata);
+        }
     }
 
     /**
@@ -157,6 +160,11 @@ class Query extends QueryHandler implements QueryInterface
     public function entity($metadata) : QueryInterface
     {
         if (is_string($metadata)) {
+            // Remove old namespace
+            $metadata = strpos($metadata, '\samson\activerecord\\') !== false ? str_replace('\samson\activerecord\\', '', $metadata) : $metadata;
+            // Capitalize and add cms namespace
+            $metadata = strpos($metadata, '\\') === false ? 'samsoncms\api\generated\\' . ucfirst($metadata) : $metadata;
+
             $this->metadata = TableMetadata::fromClassName($metadata);
         } else {
             $this->metadata = $metadata;
