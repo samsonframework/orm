@@ -35,6 +35,12 @@ class TableMetadata
     /** @var array Collection of database INDEXED table columns */
     public $indexColumns = [];
 
+    /** @var array Collection of database table columns default values */
+    public $columnDefaults = [];
+
+    /** @var array Collection of database table columns is nullable status */
+    public $columnNullable = [];
+
     /**
      * Create metadata instance from entity class name
      * @param string $className Entity class name
@@ -53,7 +59,13 @@ class TableMetadata
             $metadata->columnAliases = $queryClassName::$fieldNames;
             $metadata->columns = array_values($queryClassName::$fieldNames);
             $metadata->tableName = $queryClassName::$tableName;
-            $metadata->columnTypes = $queryClassName::$fieldTypes;
+            $metadata->columnTypes = $queryClassName::$fieldDataTypes;
+            $metadata->columnDefaults = $queryClassName::$fieldDefaults;
+
+            // Fill in nullables
+            foreach ($queryClassName::$fieldNullable as $columnName => $nullable) {
+                $metadata->columnNullable[$columnName] = $nullable === 'YES';
+            }
 
             // Store lower case aliases
             foreach ($metadata->columnAliases as $alias => $name) {

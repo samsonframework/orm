@@ -13,6 +13,7 @@ namespace samsonframework\orm;
 class SQLBuilder
 {
     const NUMERIC_COLUMNS_TYPES = ['int', 'float', 'longint', 'smallint', 'tinyint'];
+    const DATE_COLUMNS_TYPES = ['date', 'datetime', 'timestamp'];
 
     /**
      * Build update statement.
@@ -60,14 +61,22 @@ class SQLBuilder
      * @param string|array $value      Argument column value
      * @param string       $columnType Argument column type
      * @param string       $relation   Argument relation
+     * @param bool         $nullable
+     * @param string       $defaultValue
      *
      * @return string Argument relation with value statement
      */
-    protected function buildArgumentValue($value, string $columnType, string $relation)
+    protected function buildArgumentValue(
+        $value,
+        string $columnType,
+        string $relation,
+        bool $nullable = false,
+        $defaultValue = ''
+    )
     {
         return is_array($value)
             ? $this->buildArrayValue($columnType, $value, $relation)
-            : $this->buildValue($columnType, $value, $relation);
+            : $this->buildValue($columnType, $value, $relation, $nullable, $defaultValue);
     }
 
     /**
@@ -135,15 +144,32 @@ class SQLBuilder
      *
      * @return string Not array argument relation with value statement
      */
-    protected function buildValue(string $columnType, $value, string $relation) : string
+    protected function buildValue(
+        string $columnType,
+        $value,
+        string $relation,
+        bool $nullable = false,
+        $defaultValue = ''
+    ) : string
     {
+        // Append space to relation if present
+        $relation = strlen($relation) ? $relation . ' ' : '';
+        
         if ($this->isColumnNumeric($columnType)) {
-            return $relation . ' ' . $this->buildNumericValue($value);
+            return $relation . $this->buildNumericValue($value);
+        } elseif ($this->isColumnDate($columnType)) {
+            return $relation . $this->buildDateValue($value);
         } elseif (is_string($value)) {
-            return $relation . ' ' . $this->buildStringValue($value);
+            return $relation . $this->buildStringValue($value);
         } elseif ($value === null) {
-            return $relation . ' ' . $this->buildNullValue($value);
+            if ($nullable) {
+                return $relation . $this->buildNullValue();
+            } else {
+                return $relation . $defaultValue;
+            }
         }
+
+        throw new \InvalidArgumentException('Cannot build column value ' . $value);
     }
 
     /**
@@ -155,7 +181,31 @@ class SQLBuilder
      */
     protected function buildNumericValue($value) : string
     {
-        return (string)$value;
+        return $value !== null ? (string)$value : '0';
+    }
+
+    /**
+     * Define if table column type is date.
+     *
+     * @param string $columnType Table column type
+     *
+     * @return bool True if column type is date
+     */
+    protected function isColumnDate(string $columnType) : bool
+    {
+        return in_array($columnType, self::DATE_COLUMNS_TYPES, true);
+    }
+
+    /**
+     * Build not array date value statement.
+     *
+     * @param mixed $value Date value
+     *
+     * @return string Not array date value statement
+     */
+    protected function buildDateValue($value) : string
+    {
+        return '"' . $value . '"';
     }
 
     /**
@@ -292,8 +342,10 @@ class SQLBuilder
             $columnNames[] = $columnName = $tableMetadata->getTableColumnName($columnName);
             $valuesSQL[] = $this->buildArgumentValue(
                 $columnValue,
-                $tableMetadata->getTableColumnType($columnName),
-                ''
+                $tableMetadata->columnTypes[$columnName],
+                '',
+                $tableMetadata->columnNullable[$columnName],
+                $tableMetadata->columnDefaults[$columnName]
             );
         }
 
