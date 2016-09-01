@@ -162,6 +162,7 @@ class Query extends QueryHandler implements QueryInterface
         if (is_string($metadata)) {
             // Remove old namespace
             $metadata = strpos($metadata, '\samson\activerecord\\') !== false ? str_replace('\samson\activerecord\\', '', $metadata) : $metadata;
+            $metadata = strpos($metadata, 'samson\activerecord\\') !== false ? str_replace('samson\activerecord\\', '', $metadata) : $metadata;
             // Capitalize and add cms namespace
             $metadata = strpos($metadata, '\\') === false ? 'samsoncms\api\generated\\' . ucfirst($metadata) : $metadata;
 
@@ -219,6 +220,28 @@ class Query extends QueryHandler implements QueryInterface
     }
 
     /**
+     * @param        $columnName
+     * @param string $sorting
+     * @deprecated Use groupBy()
+     * @return QueryInterface|static
+     */
+    public function order_by($columnName, $sorting = 'ASC')
+    {
+        return $this->orderBy($this->metadata->tableName, $columnName, $sorting);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function orderBy(string $tableName, string $fieldName, string $order = 'ASC') : QueryInterface
+    {
+        $this->sorting[$tableName][] = [$fieldName, $order];
+
+        // Chaining
+        return $this;
+    }
+
+    /**
      * {@inheritdoc}
      */
     public function whereCondition(ConditionInterface $condition) : QueryInterface
@@ -255,17 +278,6 @@ class Query extends QueryHandler implements QueryInterface
     public function groupBy(string $tableName, string $fieldName) : QueryInterface
     {
         $this->grouping[$tableName][] = $fieldName;
-
-        // Chaining
-        return $this;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function orderBy(string $tableName, string $fieldName, string $order = 'ASC') : QueryInterface
-    {
-        $this->sorting[$tableName][] = [$fieldName, $order];
 
         // Chaining
         return $this;
