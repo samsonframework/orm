@@ -14,13 +14,14 @@ use samsonframework\orm\Record;
  */
 class TestEntity extends Record
 {
-    /** @var string Primary field name */
-    public static $_primary = 'primary';
-    /** @var array Attributes value */
-    public static $_attributes = ['testFieldAlias'=>'testField'];
-
     /** @var string Primary field */
     public $primary;
     /** @var string Test field */
     public $testField;
+    /** @var int Test field */
+    public $testColumn;
+    /** @var string Test field */
+    public $testColumn2;
+    /** @var string Test field */
+    public $testColumn3;
 }

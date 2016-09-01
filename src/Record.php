@@ -52,19 +52,21 @@ class Record implements RenderInterface, \ArrayAccess, RecordInterface
      *
      * @param DatabaseInterface|null $database
      */
-    public function __construct(DatabaseInterface $database = null)
+    public function __construct(DatabaseInterface $database = null, TableMetadata $metadata = null)
     {
         // Get database layer
         $this->database = $database;
 
         // TODO: !IMPORTANT THIS NEEDS TO BE REMOVED!
-        $this->database = $GLOBALS['__core']->getContainer()->getDatabase();
+        if (array_key_exists('__core', $GLOBALS)) {
+            $this->database = $GLOBALS['__core']->getContainer()->getDatabase();
+        }
 
         // Get current class name if none is passed
         $this->className = get_class($this);
 
         // Get table metadata
-        $this->metadata = TableMetadata::fromClassName($this->className);
+        $this->metadata = $metadata ?? TableMetadata::fromClassName($this->className);
     }
 
     /**
@@ -191,29 +193,20 @@ class Record implements RenderInterface, \ArrayAccess, RecordInterface
     {
         // Если запись уже привязана к БД - ничего не делаем
         if (!$this->attached) {
-            $this->database->insert($this->metadata, (array)$this);
+            $attributes = [];
+            foreach ($this->metadata->columnAliases as $columnAlias => $columnName) {
+                $attributes[$columnName] = $this->$columnAlias;
+            }
 
-//            // Получим имя класса
-//            $className = $this->className;
-//
-//            // Получим переменные для запроса
-//            extract($this->database->__get_table_data($className));
-//
-//            // Выполним создание записи в БД
-//            // и сразу заполним её значениями атрибутов объекта
-//            $this->id = $this->database->create($className, $this);
+            $newIdentifier = $this->database->insert($this->metadata, $attributes);
 
+            $row = $this->database->fetchArray(
+                'SELECT * FROM `' . $this->metadata->tableName . '` WHERE ' .
+                '`' . $this->metadata->tableName . '`.`' . $this->metadata->primaryField . '` = ' . $newIdentifier
+            );
 
-            // Получим созданную запись из БД
-            $db_record = $this->database->find_by_id($className, $this->id);
-
-            // Запишем все аттрибуты которые БД выставила новой записи
-            if (is_object($db_record)) {
-                foreach ($_attributes as $name => $r_name) {
-                    if (property_exists($db_record, $name) && $db_record->$name !== null) {
-                        $this->$name = $db_record->$name;
-                    }
-                }
+            foreach ($this->metadata->columnAliases as $columnAlias => $columnName) {
+                $this->$columnAlias = $row[$columnName];
             }
 
             // Установим флаг что мы привязались к БД

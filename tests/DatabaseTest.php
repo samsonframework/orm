@@ -7,7 +7,7 @@ namespace samsonframework\orm\tests;
 
 use samsonframework\orm\Database;
 use samsonframework\orm\DatabaseInterface;
-use samsonframework\orm\TableMetadata;
+use samsonframework\orm\SQLBuilder;
 
 /**
  * Class DatabaseTest.
@@ -24,6 +24,8 @@ class DatabaseTest extends TestCase
 
     public function setUp()
     {
+        parent::setUp();
+
         $this->driver = $this->createMock(\PDO::class);
 
         $stmt = $this->createMock(\PDOStatement::class);
@@ -31,7 +33,7 @@ class DatabaseTest extends TestCase
 
         $this->driver->method('prepare')->willReturn($stmt);
 
-        $this->database = new Database($this->driver);
+        $this->database = new Database($this->driver, new SQLBuilder());
     }
 
     public function testExecute()
@@ -53,11 +55,11 @@ class DatabaseTest extends TestCase
 
     public function testFetchObjects()
     {
-        $testEntity = new TestEntity($this->database);
+        $testEntity = new TestEntity($this->database, $this->metadata);
         $testEntity->primary = 1;
         $testEntity->testField = 1;
 
-        $testEntity2 = new TestEntity($this->database);
+        $testEntity2 = new TestEntity($this->database, $this->metadata);
         $testEntity2->primary = 2;
         $testEntity2->testField = 2;
 
@@ -70,7 +72,8 @@ class DatabaseTest extends TestCase
 
         $objects = $this->database->fetchObjects(
             'SELECT column1, column2 FROM `table`',
-            TestEntity::class
+            TestEntity::class,
+            $this->metadata->primaryField
         );
 
         // Always return array
@@ -82,14 +85,6 @@ class DatabaseTest extends TestCase
         // Check returned type
         static::assertInstanceOf(TestEntity::class, $objects[1]);
         static::assertInstanceOf(TestEntity::class, $objects[2]);
-    }
-
-    protected function prepareFetchArray(array $data)
-    {
-        $stmt = $this->createMock(\PDOStatement::class);
-        $stmt->method('fetchAll')->willReturn($data);
-
-        $this->driver->method('query')->willReturn($stmt);
     }
 
     public function testFetchArray()
@@ -107,6 +102,14 @@ class DatabaseTest extends TestCase
         static::assertEquals(2, $objects[1]['primary']);
     }
 
+    protected function prepareFetchArray(array $data)
+    {
+        $stmt = $this->createMock(\PDOStatement::class);
+        $stmt->method('fetchAll')->willReturn($data);
+
+        $this->driver->method('query')->willReturn($stmt);
+    }
+
     public function testCount()
     {
         $this->prepareFetchArray([['__Count'=>1]]);
@@ -121,6 +124,16 @@ class DatabaseTest extends TestCase
         static::assertEquals(0, $this->database->count('SELECT column1, column2 FROM `table`'));
     }
 
+    public function testFetchObjectsWithJoinException()
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        $this->prepareFetchObjects([
+            ['primary' => 1, 'testField' => 'test1'],
+            ['primary' => 2, 'testField' => 'test2']
+        ]);
+    }
+
     protected function prepareFetchObjects(array $data)
     {
         $stmt = $this->createMock(\PDOStatement::class);
@@ -128,38 +141,18 @@ class DatabaseTest extends TestCase
 
         $this->driver->method('query')->willReturn($stmt);
 
-        $metadata = new TableMetadata();
-        $metadata->className = TestEntity::class;
-        $metadata->primaryField = 'primary';
-        $metadata->columns = ['testField'];
-
-        $joinedMetadata = new TableMetadata();
-        $joinedMetadata->className = JoinTestEntity::class;
-        $joinedMetadata->primaryField = 'primary2';
-        $joinedMetadata->columns = ['testField2'];
-
         return $this->database->fetchObjectsWithJoin(
             'SELECT column1, column2 FROM `table`',
-            $metadata,
-            [$joinedMetadata]
+            $this->metadata,
+            $this->joinedMetadata
         );
-    }
-
-    public function testFetchObjectsWithJoinException()
-    {
-        $this->expectException(\InvalidArgumentException::class);
-
-        $this->prepareFetchObjects([
-            ['primary'=>1, 'testField' => 'test1' ],
-            ['primary'=>2, 'testField' => 'test2']
-        ]);
     }
 
     public function testFetchObjectsWithJoin()
     {
         $objects = $this->prepareFetchObjects([
-            ['primary'=>1, 'testField' => 'test1', 'primary2' => 22, 'testField2' => 'test2'],
-            ['primary'=>2, 'testField' => 'test2', 'primary2' => 23, 'testField2' => 'test3']
+            ['primary' => 1, 'testColumn' => 'test1', 'primary2' => 22, 'testColumn3' => 'test2'],
+            ['primary' => 2, 'testColumn' => 'test2', 'primary2' => 23, 'testColumn3' => 'test3']
         ]);
 
         $testEntity = $objects[1];

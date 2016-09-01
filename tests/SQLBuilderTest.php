@@ -9,7 +9,6 @@ use samsonframework\orm\ArgumentInterface;
 use samsonframework\orm\Condition;
 use samsonframework\orm\ConditionInterface;
 use samsonframework\orm\SQLBuilder;
-use samsonframework\orm\TableMetadata;
 
 /**
  * Class SQLBuilderTest
@@ -21,32 +20,11 @@ class SQLBuilderTest extends TestCase
     /** @var SQLBuilder */
     protected $sqlBuilder;
 
-    /** @var TableMetadata */
-    protected $metadata;
-
-    /** @var TableMetadata[] */
-    protected $joinedMetadata;
-
     public function setUp()
     {
+        parent::setUp();
+        
         $this->sqlBuilder = new SQLBuilder();
-
-        $this->metadata = new TableMetadata();
-        $this->metadata->tableName = 'testTable';
-        $this->metadata->className = TestEntity::class;
-        $this->metadata->columns[] = 'testColumn';
-        $this->metadata->columns[] = 'testColumn2';
-        $this->metadata->columns[] = 'testColumn3';
-        $this->metadata->columnTypes['testColumn'] = 'int';
-        $this->metadata->columnTypes['testColumn2'] = 'varchar(25)';
-        $this->metadata->columnTypes['testColumn3'] = 'varchar(25)';
-
-        $this->joinedMetadata = [];
-        $this->joinedMetadata[0] = new TableMetadata();
-        $this->joinedMetadata[0]->tableName = 'testTable2';
-        $this->joinedMetadata[0]->className = JoinTestEntity::class;
-        $this->joinedMetadata[0]->columns[] = 'testColumn3';
-        $this->joinedMetadata[0]->columns[] = 'testColumn4';
     }
 
     public function testBuildSelectStatement()
@@ -139,6 +117,20 @@ class SQLBuilderTest extends TestCase
         static::assertEquals(
             '(testColumn = 11) AND ((testColumn2 IN ("test","test2","test3")) OR (testColumn3 != "test") OR (testColumn3 IS NOT NULL) OR (testColumn3 = "test") OR (testColumn NOT IN (1,2)))',
             $this->sqlBuilder->buildWhereStatement($this->metadata, $condition)
+        );
+    }
+
+    public function testBuildInsertStatement()
+    {
+        $columnValues = [
+            'testColumn' => 1,
+            'testColumn2' => 'testValue2',
+            'testColumn3' => 'testValue3',
+        ];
+
+        static::assertEquals(
+            'INSERT INTO `testTable` (`testColumn`, `testColumn2`, `testColumn3`) VALUES ( 1,  "testValue2",  "testValue3")',
+            $this->sqlBuilder->buildInsertStatement($this->metadata, $columnValues)
         );
     }
 }

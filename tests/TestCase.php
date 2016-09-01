@@ -5,8 +5,40 @@
  */
 namespace samsonframework\orm\tests;
 
+use samsonframework\orm\TableMetadata;
+
 class TestCase extends \PHPUnit\Framework\TestCase
 {
+    /** @var TableMetadata */
+    protected $metadata;
+
+    /** @var TableMetadata[] */
+    protected $joinedMetadata;
+
+    public function setUp()
+    {
+        $this->metadata = new TableMetadata();
+        $this->metadata->tableName = 'testTable';
+        $this->metadata->primaryField = 'primary';
+        $this->metadata->className = TestEntity::class;
+        $this->metadata->columns['primary'] = 'primary';
+        $this->metadata->columns['testColumn'] = 'testColumn';
+        $this->metadata->columns['testColumn2'] = 'testColumn2';
+        $this->metadata->columns['testColumn3'] = 'testColumn3';
+        $this->metadata->columnTypes['testColumn'] = 'int';
+        $this->metadata->columnTypes['testColumn2'] = 'varchar(25)';
+        $this->metadata->columnTypes['testColumn3'] = 'varchar(25)';
+
+        $this->joinedMetadata = [];
+        $this->joinedMetadata[0] = new TableMetadata();
+        $this->joinedMetadata[0]->tableName = 'testTable2';
+        $this->joinedMetadata[0]->primaryField = 'primary2';
+        $this->joinedMetadata[0]->className = JoinTestEntity::class;
+        $this->joinedMetadata[0]->columns['primary2'] = 'primary2';
+        $this->joinedMetadata[0]->columns['testColumn3'] = 'testColumn3';
+        $this->joinedMetadata[0]->columns['testColumn4'] = 'testColumn4';
+    }
+
     /**
      * Get $object private/protected property value.
      *

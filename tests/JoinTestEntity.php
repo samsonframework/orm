@@ -14,13 +14,12 @@ use samsonframework\orm\Record;
  */
 class JoinTestEntity extends Record
 {
-    /** @var string Primary field name */
-    public static $_primary = 'primary2';
-    /** @var array Attributes value */
-    public static $_attributes = ['testField2Alias'=>'testField2'];
-
     /** @var string Primary field */
-    public $primary;
+    public $primary2;
     /** @var string Test field */
     public $testField;
+    /** @var string Test field */
+    public $testColumn3;
+    /** @var string Test field */
+    public $testColumn4;
 }

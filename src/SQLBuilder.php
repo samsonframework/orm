@@ -37,9 +37,8 @@ class SQLBuilder
                 );
         }
 
-        $sql = 'UPDATE `' . $tableMetadata->tableName . '` SET ' . implode(', ', $sql);
-
-        return $sql . ($condition !== null ? $this->buildWhereStatement($tableMetadata, $condition) : '');
+        return 'UPDATE `' . $tableMetadata->tableName . '` SET ' . implode(', ', $sql)
+        . ($condition !== null ? $this->buildWhereStatement($tableMetadata, $condition) : '');
     }
 
     /**
@@ -138,9 +137,13 @@ class SQLBuilder
      */
     protected function buildValue(string $columnType, $value, string $relation) : string
     {
-        return $this->isColumnNumeric($columnType)
-            ? $relation . ' ' . $this->buildNumericValue($value)
-            : $relation . ' ' . $this->buildStringValue($value);
+        if ($this->isColumnNumeric($columnType)) {
+            return $relation . ' ' . $this->buildNumericValue($value);
+        } elseif (is_string($value)) {
+            return $relation . ' ' . $this->buildStringValue($value);
+        } elseif ($value === null) {
+            return $relation . ' ' . $this->buildNullValue($value);
+        }
     }
 
     /**
@@ -165,6 +168,16 @@ class SQLBuilder
     protected function buildStringValue(string $value) : string
     {
         return '"' . $value . '"';
+    }
+
+    /**
+     * Build not array NULL value statement.
+     *
+     * @return string Not array string value statement
+     */
+    protected function buildNullValue() : string
+    {
+        return 'NULL';
     }
 
     /**
@@ -273,20 +286,19 @@ class SQLBuilder
      */
     public function buildInsertStatement(TableMetadata $tableMetadata, array $columnValues) : string
     {
-        $sql = [];
+        $valuesSQL = [];
         $columnNames = [];
         foreach ($columnValues as $columnName => $columnValue) {
             $columnNames[] = $columnName = $tableMetadata->getTableColumnName($columnName);
-            $sql[] = $this->buildFullColumnName($tableMetadata->tableName, $columnName) .
-                $this->buildArgumentValue(
-                    $columnValue,
-                    $tableMetadata->getTableColumnType($columnName),
-                    ArgumentInterface::EQUAL
-                );
+            $valuesSQL[] = $this->buildArgumentValue(
+                $columnValue,
+                $tableMetadata->getTableColumnType($columnName),
+                ''
+            );
         }
 
         $sql = 'INSERT INTO `' . $tableMetadata->tableName . '` (`' . implode('`, `', $columnNames) . '`) ';
-        $sql .= 'VALUES (' . implode(', ', $sql) . ')';
+        $sql .= 'VALUES (' . implode(', ', $valuesSQL) . ')';
 
         return $sql;
     }

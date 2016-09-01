@@ -20,8 +20,11 @@ class TableMetadata
     /** @var array Collection of database table columns types */
     public $columnTypes = [];
 
-    /** @var array Collection of database table columns aliases */
+    /** @var array Collection of database table columns aliases to real column names */
     public $columnAliases = [];
+
+    /** @var array Collection of lower case table column aliases to real column names */
+    public $lowerColumnAliases = [];
 
     /** @var string Database table primary field */
     public $primaryField;
@@ -51,6 +54,11 @@ class TableMetadata
             $metadata->columns = array_values($queryClassName::$fieldNames);
             $metadata->tableName = $queryClassName::$tableName;
             $metadata->columnTypes = $queryClassName::$fieldTypes;
+
+            // Store lower case aliases
+            foreach ($metadata->columnAliases as $alias => $name) {
+                $metadata->lowerColumnAliases[strtolower($alias)] = $name;
+            }
 
             return $metadata;
         }
@@ -89,11 +97,19 @@ class TableMetadata
      */
     public function getTableColumnName(string $columnNameOrAlias) : string
     {
+        // Case insensitive search
+        $lowerAlias = strtolower($columnNameOrAlias);
+        if (array_key_exists($lowerAlias, $this->lowerColumnAliases)) {
+            return $this->lowerColumnAliases[$lowerAlias];
+        }
+
+        // Search real column names
         if (in_array($columnNameOrAlias, $this->columns, true)) {
             return $columnNameOrAlias;
         }
 
-        if (in_array($columnNameOrAlias, $this->columnAliases, true)) {
+        // Search column aliases
+        if (array_key_exists($columnNameOrAlias, $this->columnAliases)) {
             return $this->columnAliases[$columnNameOrAlias];
         }
 

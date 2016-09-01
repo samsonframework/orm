@@ -153,14 +153,14 @@ class Database implements DatabaseInterface
      * @return array
      * @throws \InvalidArgumentException
      */
-    protected function createEntities(array $rows, TableMetadata $metadata, array $joinedMetadata)
+    protected function createEntities(array $rows, TableMetadata $metadata, array $joinedMetadata = [])
     {
         $objects = [];
 
         /** @var array $entityRows Iterate entity rows */
         foreach ($this->groupResults($rows, $metadata->primaryField) as $primaryValue => $entityRows) {
             // Create entity instance
-            $instance = $objects[$primaryValue] = new $metadata->className($this);
+            $instance = $objects[$primaryValue] = new $metadata->className($this, $metadata);
 
             // TODO: $attributes argument should be filled with selected fields?
             $this->fillEntityFieldValues($instance, $metadata->columns, $entityRows[0]);
@@ -171,7 +171,7 @@ class Database implements DatabaseInterface
                 foreach ($joinedMetadata as $joinMetadata) {
                     if (array_key_exists($joinMetadata->primaryField, $row)) {
                         // Create joined instance and add to parent instance
-                        $joinedInstance = new $joinMetadata->className($this);
+                        $joinedInstance = new $joinMetadata->className($this, $joinMetadata);
 
                         // TODO: We need to change value retrieval
                         $this->fillEntityFieldValues($joinedInstance, $joinMetadata->columns, $row);
@@ -220,19 +220,15 @@ class Database implements DatabaseInterface
      * @param mixed $instance   Entity instance
      * @param array $attributes Metadata entity attributes
      * @param array $row        Database results row
-     *
-     * @throws \InvalidArgumentException
      */
     protected function fillEntityFieldValues($instance, array $attributes, array $row)
     {
-        // Iterate attribute value
-        foreach ($attributes as $alias) {
+        foreach ($row as $columnName => $columnValue) {
             // If database row has aliased field column
-            if (array_key_exists($alias, $row)) {
+            if (array_key_exists($columnName, $attributes)) {
+                $columnName = $attributes[$columnName];
                 // Store attribute value
-                $instance->$alias = $row[$alias];
-            } else {
-                throw new \InvalidArgumentException('Database row does not have requested column:'.$alias);
+                $instance->$columnName = $columnValue;
             }
         }
 
