@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types = 1);
 namespace samson\activerecord;
 
 use samsonframework\orm\ArgumentInterface;
@@ -8,12 +8,9 @@ use samsonframework\orm\QueryHandler;
 use samsonframework\orm\QueryInterface;
 
 /**
- * Запрос для БД
- * Класс собирает в себя все необходимые параметры для
- * формирования "правильного" запроса на самом низком уровне
- * работы с БД
+ * This class will be removed in next major release.
  * @author     Vitaly Iegorov <vitalyiegorov@gmail.com>
- * @deprecated Should be removed ASAP in favor of generated classes of DI
+ * @deprecated Should be removed ASAP in favor of generated classes or DI
  *
  */
 class dbQuery extends QueryHandler
