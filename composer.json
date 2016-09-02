@@ -35,12 +35,15 @@
       "samsonframework\\orm\\tests\\": "tests/"
     }
   },
+  "replace": {
+    "samsonos/php_activerecord": "*"
+  },
   "config":{
     "github-protocols":["https"]
   },
   "extra": {
     "branch-alias": {
-      "dev-master": "0.1.x-dev"
+      "dev-master": "1.1.x-dev"
     },
     "samsonphp_package_compressable": "1", 
     "samson_module_include": "1",
