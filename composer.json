@@ -43,6 +43,7 @@
       "dev-master": "0.1.x-dev"
     },
     "samsonphp_package_compressable": "1", 
-    "samson_module_include": "1"
+    "samson_module_include": "1",
+    "samsonframework_precontainer":"1"
   }
 }
