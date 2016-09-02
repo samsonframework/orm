@@ -29,7 +29,13 @@ class dbQuery extends QueryHandler
     /** @var bool True to show requests */
     protected $debug = false;
 
-
+    /** Constructor */
+    public function __construct()
+    {
+        $this->database = $GLOBALS['__core']->getContainer()->getDatabase();
+        $this->sqlBuilder = $GLOBALS['__core']->getContainer()->getSqlBuilder();
+    }
+    
     /**
      * @param string $metadata
      *
