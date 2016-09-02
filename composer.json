@@ -25,7 +25,10 @@
   "autoload": {
     "psr-4": {
       "samsonframework\\orm\\": "src/"
-    }
+    },
+    "files": [
+      "src/global.php"
+    ]
   },
   "autoload-dev": {
     "psr-4": {

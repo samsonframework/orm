@@ -1,5 +1,6 @@
 <?php declare(strict_types=1);
 namespace samsonframework\orm;
+use samson\activerecord\dbQuery;
 
 /**
  * Database query builder.
@@ -7,7 +8,7 @@ namespace samsonframework\orm;
  * @author Vitaly Iegorov <egorov@samsonos.com>
  * @\samsonframework\containerannotation\Service("query")
  */
-class Query extends QueryHandler implements QueryInterface
+class Query extends dbQuery implements QueryInterface
 {
     /** @var TableMetadata */
     protected $metadata;
@@ -49,16 +50,6 @@ class Query extends QueryHandler implements QueryInterface
     {
         $this->database = $database;
         $this->sqlBuilder = $sqlBuilder;
-    }
-
-    /**
-     * Execute current query and receive collection of RecordInterface objects from database.
-     * @deprecated Use self::find()
-     * @return RecordInterface[] Database entities collection
-     */
-    public function exec() : array
-    {
-        return $this->find();
     }
 
     /**
@@ -140,21 +131,6 @@ class Query extends QueryHandler implements QueryInterface
     }
 
     /**
-     * @param string $metadata
-     *
-     * @deprecated Use entity()
-     * @return QueryInterface|string
-     */
-    public function className(string $metadata = null)
-    {
-        if (func_num_args() === 0) {
-            return $this->metadata->className;
-        } else {
-            return $this->entity($metadata);
-        }
-    }
-
-    /**
      * {@inheritdoc}
      */
     public function entity($metadata) : QueryInterface
@@ -179,55 +155,6 @@ class Query extends QueryHandler implements QueryInterface
         $this->condition = new Condition();
 
         return $this;
-    }
-
-    /**
-     * @param        $field
-     * @param        $value
-     * @param string $relation
-     * @deprecated Use where()
-     * @return QueryInterface
-     */
-    public function cond($field, $value, $relation = ArgumentInterface::EQUAL)
-    {
-        return $this->where($field, $value, $relation);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function where(
-        string $fieldName,
-        $fieldValue = null,
-        string $relation = ArgumentInterface::EQUAL
-    ) : QueryInterface
-    {
-//        // Handle empty field value passing to avoid unexpected behaviour
-//        if ($fieldValue === null) {
-//            $relation = ArgumentInterface::ISNULL;
-//            $fieldValue = '';
-//        } elseif (is_array($fieldValue) && !count($fieldValue)) {
-//            // TODO: We consider empty array passed as condition value as NULL, illegal condition
-//            $relation = ArgumentInterface::EQUAL;
-//            $fieldName = '1';
-//            $fieldValue = '0';
-//        }
-
-        // Add condition argument
-        $this->condition->add($fieldName, $fieldValue, $relation);
-
-        return $this;
-    }
-
-    /**
-     * @param        $columnName
-     * @param string $sorting
-     * @deprecated Use groupBy()
-     * @return QueryInterface|static
-     */
-    public function order_by($columnName, $sorting = 'ASC')
-    {
-        return $this->orderBy($this->metadata->tableName, $columnName, $sorting);
     }
 
     /**
@@ -289,6 +216,21 @@ class Query extends QueryHandler implements QueryInterface
     public function isNull(string $fieldName) : QueryInterface
     {
         return $this->where($fieldName, '', ArgumentInterface::ISNULL);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function where(
+        string $fieldName,
+        $fieldValue = null,
+        string $relation = ArgumentInterface::EQUAL
+    ) : QueryInterface
+    {
+        // Add condition argument
+        $this->condition->add($fieldName, $fieldValue, $relation);
+
+        return $this;
     }
 
     /**
