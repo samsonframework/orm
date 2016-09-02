@@ -24,7 +24,8 @@
   "homepage": "http://samsonos.com/",
   "autoload": {
     "psr-4": {
-      "samsonframework\\orm\\": "src/"
+      "samsonframework\\orm\\": "src/",
+      "samson\\activerecord\\": "src/"
     },
     "files": [
       "src/global.php"
