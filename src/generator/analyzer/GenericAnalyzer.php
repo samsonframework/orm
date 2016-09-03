@@ -64,8 +64,13 @@ abstract class GenericAnalyzer
         return str_replace(
             ' ',
             '',
-            ucwords(iconv('UTF-8', 'UTF-8//IGNORE',
-                    strtr($string, [
+            ucwords(
+                iconv(
+                    'UTF-8',
+                    'UTF-8//IGNORE',
+                    strtr(
+                        $string,
+                        [
                             '\'' => '',
                             '`' => '',
                             '-' => ' ',
@@ -171,5 +176,4 @@ abstract class GenericAnalyzer
         return '';
     }
 }
-
 //[PHPCOMPRESSOR(remove,end)]
