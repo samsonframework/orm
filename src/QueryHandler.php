@@ -5,6 +5,7 @@ namespace samsonframework\orm;
  * Class for saving external query handlers
  * @author Vitaly Iegorov <egorov@samsonos.com>
  * @version 2.0
+ * @deprecated
  */
 class QueryHandler
 {
