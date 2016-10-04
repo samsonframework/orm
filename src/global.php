@@ -8,7 +8,7 @@ function db($link_id = null)
 
     // Get from new container
     if (array_key_exists('__core', $GLOBALS) && $_db === null) {
-        $_db = $GLOBALS['__core']->getContainer()->getDatabase();
+        $_db = $GLOBALS['__core']->getContainer()->get('database');
     }
 
     return $_db;

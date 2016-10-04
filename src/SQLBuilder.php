@@ -30,11 +30,29 @@ class SQLBuilder
         $sql = [];
         foreach ($columnValues as $columnName => $columnValue) {
             $columnName = $tableMetadata->getTableColumnName($columnName);
+
+            // Check for null on not nullable columns
+            if (!$tableMetadata->isColumnNullable($columnName) && $columnValue === null) {
+                throw new \InvalidArgumentException(
+                    sprintf(
+                        'Cannot update column "%s::%s" with null - column is not nullable',
+                        $tableMetadata->tableName,
+                        $columnName
+                    )
+                );
+            }
+
+            // Do not update primary field
+            if ($tableMetadata->getTablePrimaryField() === $columnName) {
+                continue;
+            }
             $sql[] = $this->buildFullColumnName($tableMetadata->tableName, $columnName) .
                 $this->buildArgumentValue(
                     $columnValue,
                     $tableMetadata->getTableColumnType($columnName),
-                    ArgumentInterface::EQUAL
+                    ArgumentInterface::EQUAL,
+                    $tableMetadata->isColumnNullable($columnName),
+                    $tableMetadata->getColumnDefaultValue($columnName)
                 );
         }
 
@@ -246,13 +264,20 @@ class SQLBuilder
 
         foreach ($condition as $argument) {
             if ($argument instanceof ConditionInterface) {
-                $conditions[] = $this->buildWhereStatement($metadata, $argument);
+                $result = $this->buildWhereStatement($metadata, $argument);
             } else {
-                $conditions[] = $this->buildArgumentCondition($argument, $metadata);
+                $result = $this->buildArgumentCondition($argument, $metadata);
+            }
+            if (isset($result{0})) {
+                $conditions[] = $result;
             }
         }
 
-        return '(' . implode(') ' . $condition->relation . ' (', $conditions) . ')';
+        if (count($conditions)) {
+            return '(' . implode(') ' . $condition->relation . ' (', $conditions) . ')';
+        } else { // If arguments is empty return empty where statement
+            return '';
+        }
     }
 
     /**

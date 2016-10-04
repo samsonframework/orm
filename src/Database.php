@@ -7,11 +7,14 @@
  */
 namespace samsonframework\orm;
 
+use samsonframework\container\definition\analyzer\annotation\annotation\InjectClass;
+use samsonframework\container\definition\analyzer\annotation\annotation\Service;
+
 /**
  * Database management class.
  *
  * @package samsonframework\orm
- * @\samsonframework\containerannotation\Service("database")
+ * @Service("database")
  */
 class Database implements DatabaseInterface
 {
@@ -29,8 +32,8 @@ class Database implements DatabaseInterface
      *
      * @param \PDO $driver
      *
-     * @\samsonframework\containerannotation\InjectArgument(driver="\PDO")
-     * @\samsonframework\containerannotation\InjectArgument(sqlBuilder="\samsonframework\orm\SQLBuilder")
+     * @InjectClass(driver="\PDO")
+     * @InjectClass(sqlBuilder="\samsonframework\orm\SQLBuilder")
      */
     public function __construct(\PDO $driver, SQLBuilder $sqlBuilder)
     {
@@ -65,7 +68,7 @@ class Database implements DatabaseInterface
     /**
      * {@inheritdoc}
      */
-    public function update(TableMetadata $tableMetadata, array $columnValues, Condition $condition)
+    public function update(TableMetadata $tableMetadata, array $columnValues, Condition $condition = null)
     {
         return $this->execute($this->sqlBuilder->buildUpdateStatement($tableMetadata, $columnValues, $condition));
     }
@@ -112,12 +115,15 @@ class Database implements DatabaseInterface
 
     /**
      * {@inheritdoc}
+     * @throws \InvalidArgumentException
      */
-    public function fetchObjects(string $sql, string $className, string $primaryField) : array
+    public function fetchObjects(string $sql, TableMetadata $metadata) : array
     {
         $grouped = [];
-        foreach ($this->driver->query($sql)->fetchAll(\PDO::FETCH_CLASS, $className) as $instance) {
-            $grouped[$instance->$primaryField] = $instance;
+        foreach ($this->driver->query($sql)->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            $instance = new $metadata->className();
+            $this->fillEntityFieldValues($instance, $metadata, $row);
+            $grouped[$metadata->getTablePrimaryField()] = $instance;
         }
 
         return $grouped;
@@ -163,7 +169,7 @@ class Database implements DatabaseInterface
             $instance = $objects[$primaryValue] = new $metadata->className($this, $metadata);
 
             // TODO: $attributes argument should be filled with selected fields?
-            $this->fillEntityFieldValues($instance, $metadata->columns, $entityRows[0]);
+            $this->fillEntityFieldValues($instance, $metadata, $entityRows[0]);
 
             // Iterate inner rows for nested entities creation
             foreach ($entityRows as $row) {
@@ -174,7 +180,7 @@ class Database implements DatabaseInterface
                         $joinedInstance = new $joinMetadata->className($this, $joinMetadata);
 
                         // TODO: We need to change value retrieval
-                        $this->fillEntityFieldValues($joinedInstance, $joinMetadata->columns, $row);
+                        $this->fillEntityFieldValues($joinedInstance, $joinMetadata, $row);
 
                         // Store joined instance by primary field value
                         $instance->joined[$joinMetadata->className][$row[$joinMetadata->primaryField]] = $joinedInstance;
@@ -217,20 +223,25 @@ class Database implements DatabaseInterface
     /**
      * Fill entity instance fields from row column values according to entity value attributes.
      *
-     * @param mixed $instance   Entity instance
-     * @param array $attributes Metadata entity attributes
-     * @param array $row        Database results row
+     * @param mixed $instance Entity instance
+     * @param TableMetadata $metadata
+     * @param array $row Database results row
      */
-    protected function fillEntityFieldValues($instance, array $attributes, array $row)
+    protected function fillEntityFieldValues($instance, TableMetadata $metadata, array $row)
     {
         foreach ($row as $columnName => $columnValue) {
             // If database row has aliased field column
-            if (array_key_exists($columnName, $attributes)) {
-                $columnName = $attributes[$columnName];
+            if ($metadata->isColumnExists($columnName)) {
+                $columnName = $metadata->getTableColumnName($columnName);
                 // Store attribute value
                 $instance->$columnName = $columnValue;
             }
         }
+
+        // FIXME: Old activerecord pattern behavior
+        $instance->id = (int)$row[$metadata->primaryField];
+        // FIXME: Old activerecord pattern behavior
+        $instance->attached = true;
 
         // Call handler for object filling
         $instance->filled();

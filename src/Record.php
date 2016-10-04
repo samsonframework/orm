@@ -15,17 +15,27 @@ use samsonframework\core\RenderInterface;
  */
 class Record implements RenderInterface, \ArrayAccess, RecordInterface
 {
-    /** @var array Collection of instances for caching */
+    /**
+     * @var array Collection of instances for caching
+     * @deprecated
+     */
     public static $instances = array();
 
-    /** Collection of class fields that would not be passed to module view */
+    /**
+     * Collection of class fields that would not be passed to module view
+     * @deprecated
+     */
     public static $restricted = array('attached', 'oneToOne', 'oneToMany', 'value');
 
-    /** @var array Collection of joined entities */
+    /**
+     * @var array Collection of joined entities
+     * @deprecated
+     */
     public $joined = [];
-    /** @var int Identifier */
-    public $id;
-    /** @var string Entity class name */
+    /**
+     * @var string Entity class name
+     * @deprecated
+     */
     public $className;
     /**
      * @var array Related OTO records grouped by entity class name
@@ -42,10 +52,13 @@ class Record implements RenderInterface, \ArrayAccess, RecordInterface
      * @deprecated
      */
     public $attached = false;
+
     /** @var DatabaseInterface Database layer */
     protected $database;
     /** @var TableMetadata */
     protected $metadata;
+    /** @var int Identifier */
+    public $id;
 
     /**
      * Record constructor.
@@ -58,14 +71,16 @@ class Record implements RenderInterface, \ArrayAccess, RecordInterface
         $this->database = $database;
 
         // TODO: !IMPORTANT THIS NEEDS TO BE REMOVED!
+        // FIXME: Dependency resolving
         if (array_key_exists('__core', $GLOBALS)) {
-            $this->database = $GLOBALS['__core']->getContainer()->getDatabase();
+            $this->database = $GLOBALS['__core']->getContainer()->get('database');
         }
 
         // Get current class name if none is passed
         $this->className = get_class($this);
 
         // Get table metadata
+        // FIXME: Dependency resolving
         $this->metadata = $metadata ?? TableMetadata::fromClassName($this->className);
     }
 
@@ -175,29 +190,14 @@ class Record implements RenderInterface, \ArrayAccess, RecordInterface
      */
     public function save()
     {
-        // Если данный объект еще привязан к записи в БД - выполним обновление записи в БД
-        if ($this->attached) {
-            $this->database->update($this->className, $this);
-        } else { // Иначе создадим новую запись с привязкой к данному объекту
-            $this->create();
+        $attributes = [];
+        foreach ($this->metadata->columnAliases as $columnAlias => $columnName) {
+            $attributes[$columnName] = $this->$columnAlias;
         }
 
-        // Store instance in cache
-        self::$instances[$this->className][$this->id] = &$this;
-    }
-
-    /**
-     * @see idbRecord::create()
-     */
-    public function create()
-    {
-        // Если запись уже привязана к БД - ничего не делаем
-        if (!$this->attached) {
-            $attributes = [];
-            foreach ($this->metadata->columnAliases as $columnAlias => $columnName) {
-                $attributes[$columnName] = $this->$columnAlias;
-            }
-
+        if ($this->attached) {
+            $this->database->update($this->metadata, $attributes);
+        } else {
             $newIdentifier = $this->database->insert($this->metadata, $attributes);
 
             $rows = $this->database->fetchArray(
@@ -212,13 +212,24 @@ class Record implements RenderInterface, \ArrayAccess, RecordInterface
             } else {
                 throw new \InvalidArgumentException('Failed ' . get_class($this) . ' entoty creation');
             }
-
-            // Установим флаг что мы привязались к БД
-            $this->attached = true;
         }
+
+        // Store instance in cache
+        self::$instances[$this->className][$this->id] = &$this;
     }
 
-    /** @see \samson\core\iModuleViewable::toView() */
+    /**
+     * @see idbRecord::create()
+     * @deprecated
+     */
+    public function create()
+    {
+    }
+
+    /**
+     * @see \samson\core\iModuleViewable::toView()
+     * @deprecated
+     */
     public function toView($prefix = null, array $restricted = array())
     {
         // Create resulting view data array, add identifier field
@@ -243,8 +254,9 @@ class Record implements RenderInterface, \ArrayAccess, RecordInterface
      * Create full entity copy from
      * @param mixed $object Variable to return copied object
      * @return Record New copied object
+     * @deprecated Not supported yet
      */
-    public function & copy(&$object = null)
+    public function &copy(&$object = null)
     {
         // Get current entity class
         $entity = get_class($this);
@@ -272,15 +284,46 @@ class Record implements RenderInterface, \ArrayAccess, RecordInterface
         return $object;
     }
 
-    /** @see ArrayAccess::offsetSet() */
-    public function offsetSet($offset, $value)
+    public function __isset($name)
     {
-        $this->$offset = $value;
+        return $this->offsetExists($name);
     }
 
-    /** @see ArrayAccess::offsetGet() */
+    public function __set($name, $value)
+    {
+        $this->offsetSet($name, $value);
+    }
+
+    public function __get($name)
+    {
+        return $this->offsetGet($name);
+    }
+
+    /**
+     * @see ArrayAccess::offsetSet()
+     * @throws \InvalidArgumentException
+     */
+    public function offsetSet($offset, $value)
+    {
+        if ($this->metadata->isColumnExists($offset)) {
+            $fieldName = $this->metadata->getTableColumnAlias($offset);
+            $this->$fieldName = $value;
+        } else {
+            $this->$offset = $value;
+        }
+    }
+
+    /**
+     * @see ArrayAccess::offsetGet()
+     * @throws \InvalidArgumentException
+     */
     public function offsetGet($offset)
     {
+        if ($this->metadata->isColumnExists($offset)) {
+            $fieldName = $this->metadata->getTableColumnAlias($offset);
+            return $this->$fieldName;
+        }
+
         return $this->$offset;
     }
 
@@ -293,6 +336,6 @@ class Record implements RenderInterface, \ArrayAccess, RecordInterface
     /** @see ArrayAccess::offsetExists() */
     public function offsetExists($offset)
     {
-        return property_exists($this, $offset);
+        return property_exists($this, $offset) || $this->metadata->isColumnExists($offset);
     }
 }

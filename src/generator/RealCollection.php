@@ -79,7 +79,7 @@ class RealCollection extends Generic
         $class .= "\n\t\t" . '// TODO: This should be removed!';
         $class .= "\n\t\t" . '$this->renderer = $renderer;';
         $class .= "\n\t\t" . '$container = $GLOBALS[\'__core\']->getContainer();';
-        $class .= "\n\t\t" . 'parent::__construct($query ?? $container->getQuery());';
+        $class .= "\n\t\t" . 'parent::__construct($query ?? $container->get("query"));';
         $class .= "\n\t" . '}';
 
         $this->generator->text($class);

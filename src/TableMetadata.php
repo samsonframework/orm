@@ -100,6 +100,27 @@ class TableMetadata
     }
 
     /**
+     * Get table column default value by column name or alias.
+     *
+     * @param string $columnNameOrAlias Table column name or alias
+     *
+     * @return mixed Table column default value
+     * @throws \InvalidArgumentException
+     */
+    public function getColumnDefaultValue(string $columnNameOrAlias)
+    {
+        $columnName = $this->getTableColumnName($columnNameOrAlias);
+
+        if (array_key_exists($columnName, $this->columnDefaults)) {
+            return $this->columnDefaults[$columnName];
+        }
+
+        throw new \InvalidArgumentException(
+            'Column ' . $columnNameOrAlias . ' type is not defined table ' . $this->tableName
+        );
+    }
+
+    /**
      * Get table column name by column name or alias.
      *
      * @param string $columnNameOrAlias Table column name or alias
@@ -110,24 +131,54 @@ class TableMetadata
     public function getTableColumnName(string $columnNameOrAlias) : string
     {
         // Case insensitive search
-        $lowerAlias = strtolower($columnNameOrAlias);
-        if (array_key_exists($lowerAlias, $this->lowerColumnAliases)) {
-            return $this->lowerColumnAliases[$lowerAlias];
+        if ($this->isColumnAliasExists($columnNameOrAlias)) {
+            return $this->lowerColumnAliases[strtolower($columnNameOrAlias)];
         }
 
         // Search real column names
-        if (in_array($columnNameOrAlias, $this->columns, true)) {
+        if ($this->isColumnNameExists($columnNameOrAlias)) {
             return $columnNameOrAlias;
-        }
-
-        // Search column aliases
-        if (array_key_exists($columnNameOrAlias, $this->columnAliases)) {
-            return $this->columnAliases[$columnNameOrAlias];
         }
 
         throw new \InvalidArgumentException(
             'Column ' . $columnNameOrAlias . ' not found in table ' . $this->tableName
         );
+    }
+
+    /**
+     * Get table column alias by column name or alias.
+     *
+     * @param string $columnNameOrAlias Table column name or alias
+     *
+     * @return string Table column alias
+     * @throws \InvalidArgumentException
+     */
+    public function getTableColumnAlias(string $columnNameOrAlias) : string
+    {
+        // Case insensitive search
+        if ($this->isColumnAliasExists($columnNameOrAlias)) {
+            return $columnNameOrAlias;
+        }
+
+        // Search real column names
+        if ($this->isColumnNameExists($columnNameOrAlias)) {
+            return array_flip($this->columnAliases)[$columnNameOrAlias];
+        }
+
+        throw new \InvalidArgumentException(
+            'Column ' . $columnNameOrAlias . ' not found in table ' . $this->tableName
+        );
+    }
+
+    /**
+     * Get table primary field name.
+     *
+     * @return string Table primary field name
+     * @throws \InvalidArgumentException
+     */
+    public function getTablePrimaryField(): string
+    {
+        return $this->getTableColumnName($this->primaryField);
     }
 
     /**
@@ -141,5 +192,51 @@ class TableMetadata
     public function getTableColumnIndex(string $columnNameOrAlias) : int
     {
         return array_search($this->getTableColumnName($columnNameOrAlias), $this->columns, true);
+    }
+
+    /**
+     * Define if passed column name or alias exists.
+     *
+     * @param string $columnNameOrAlias Table column name or alias
+     * @return bool True if passed column name or alias exists
+     */
+    public function isColumnExists(string $columnNameOrAlias): bool
+    {
+        return $this->isColumnAliasExists($columnNameOrAlias) || $this->isColumnNameExists($columnNameOrAlias);
+    }
+
+    /**
+     * Is column alias exists using case insensitive search.
+     *
+     * @param string $columnAlias Column name alias
+     * @return bool True if column alias exists otherwise false
+     */
+    protected function isColumnAliasExists(string $columnAlias): bool
+    {
+//        return array_key_exists($columnAlias, $this->columnAliases);
+        return array_key_exists(strtolower($columnAlias), $this->lowerColumnAliases);
+    }
+
+    /**
+     * Is column name exists.
+     *
+     * @param string $columnName Column name
+     * @return bool True if column name exists otherwise false
+     */
+    protected function isColumnNameExists(string $columnName): bool
+    {
+        return in_array($columnName, $this->columns, true);
+    }
+
+    /**
+     * Is column nullable.
+     *
+     * @param string $columnNameOrAlias Column name or alias
+     * @return bool True if column is nullable otherwise false
+     * @throws \InvalidArgumentException
+     */
+    public function isColumnNullable(string $columnNameOrAlias): bool
+    {
+        return $this->columnNullable[$this->getTableColumnName($columnNameOrAlias)];
     }
 }

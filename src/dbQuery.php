@@ -23,7 +23,6 @@ class dbQuery extends QueryHandler
     protected $class_name;
     /**
      * @var QueryInterface
-     * @\samsonframework\containerannotation\Injectable
      */
     protected $query;
     /** @var bool True to show requests */

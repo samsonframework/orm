@@ -1,12 +1,14 @@
 <?php declare(strict_types=1);
 namespace samsonframework\orm;
+
 use samson\activerecord\dbQuery;
+use samsonframework\container\definition\analyzer\annotation\annotation\Service;
 
 /**
  * Database query builder.
  *
  * @author Vitaly Iegorov <egorov@samsonos.com>
- * @\samsonframework\containerannotation\Service("query")
+ * @Service("query")
  */
 class Query extends dbQuery implements QueryInterface
 {
@@ -42,9 +44,6 @@ class Query extends dbQuery implements QueryInterface
      *
      * @param               Database Database instance
      * @param SQLBuilder    $sqlBuilder
-     *
-     * @\samsonframework\containerannotation\InjectArgument(database="\samsonframework\orm\Database")
-     * @\samsonframework\containerannotation\InjectArgument(sqlBuilder="\samsonframework\orm\SQLBuilder")
      */
     public function __construct(Database $database, SQLBuilder $sqlBuilder)
     {
@@ -57,7 +56,7 @@ class Query extends dbQuery implements QueryInterface
      */
     public function find() : array
     {
-        return $this->database->fetchObjects($this->buildSQL(), $this->metadata->className, $this->metadata->primaryField);
+        return $this->database->fetchObjects($this->buildSQL(), $this->metadata);
     }
 
     /**
@@ -75,7 +74,12 @@ class Query extends dbQuery implements QueryInterface
         $sql .= "\n" . $this->sqlBuilder->buildFromStatement(
                 array_merge(array_keys($this->select), array_keys($this->joins))
             );
-        $sql .= "\n" . 'WHERE ' . $this->sqlBuilder->buildWhereStatement($this->metadata, $this->condition);
+
+        $whereCondition = $this->sqlBuilder->buildWhereStatement($this->metadata, $this->condition);
+
+        if (isset($whereCondition{0})) {
+            $sql .= "\n" . 'WHERE ' . $whereCondition;
+        }
 
         if (count($this->grouping)) {
             $sql .= "\n" . $this->sqlBuilder->buildGroupStatement($this->grouping);
