@@ -157,7 +157,8 @@ class TableMetadata
     {
         // Case insensitive search
         if ($this->isColumnAliasExists($columnNameOrAlias)) {
-            return $columnNameOrAlias;
+            $columnName = $this->lowerColumnAliases[strtolower($columnNameOrAlias)];
+            return array_flip($this->columnAliases)[$columnName];
         }
 
         // Search real column names

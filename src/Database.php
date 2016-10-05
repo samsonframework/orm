@@ -123,7 +123,7 @@ class Database implements DatabaseInterface
         foreach ($this->driver->query($sql)->fetchAll(\PDO::FETCH_ASSOC) as $row) {
             $instance = new $metadata->className();
             $this->fillEntityFieldValues($instance, $metadata, $row);
-            $grouped[$metadata->getTablePrimaryField()] = $instance;
+            $grouped[$row[$metadata->getTablePrimaryField()]] = $instance;
         }
 
         return $grouped;
@@ -232,7 +232,7 @@ class Database implements DatabaseInterface
         foreach ($row as $columnName => $columnValue) {
             // If database row has aliased field column
             if ($metadata->isColumnExists($columnName)) {
-                $columnName = $metadata->getTableColumnName($columnName);
+                $columnName = $metadata->getTableColumnAlias($columnName);
                 // Store attribute value
                 $instance->$columnName = $columnValue;
             }

@@ -60,6 +60,21 @@ class Query extends dbQuery implements QueryInterface
     }
 
     /**
+     * {@inheritdoc}
+     */
+    public function flush() : QueryInterface
+    {
+        $this->select = [];
+        $this->sorting = [];
+        $this->grouping = [];
+        $this->limitation = [];
+        $this->joins = [];
+        $this->condition = new Condition();
+
+        return $this;
+    }
+
+    /**
      * Build SQL statement from this query.
      *
      * @return string SQL statement
@@ -151,12 +166,7 @@ class Query extends dbQuery implements QueryInterface
             $this->metadata = $metadata;
         }
 
-        $this->select = [];
-        $this->joins = [];
-        $this->grouping = [];
-        $this->limitation = [];
-        $this->sorting = [];
-        $this->condition = new Condition();
+        $this->flush();
 
         return $this;
     }
@@ -164,9 +174,10 @@ class Query extends dbQuery implements QueryInterface
     /**
      * {@inheritdoc}
      */
-    public function orderBy(string $tableName, string $fieldName, string $order = 'ASC') : QueryInterface
+    public function orderBy(string $fieldName, string $order = 'ASC', string $tableName = null) : QueryInterface
     {
-        $this->sorting[$tableName][] = [$fieldName, $order];
+        $this->sorting[0][$tableName ?? $this->metadata->tableName][] = $fieldName;
+        $this->sorting[1][] = $order;
 
         // Chaining
         return $this;

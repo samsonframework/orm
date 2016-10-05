@@ -75,12 +75,6 @@ class dbQuery extends QueryHandler
         return $this;
     }
 
-    /** @deprecated Use QueryInterface implementation */
-    public function flush()
-    {
-
-    }
-
     /** @see idbQuery::random() */
     public function random(& $return_value = null)
     {
